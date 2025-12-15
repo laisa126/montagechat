@@ -13,11 +13,12 @@ export const useAuth = () => {
     return null;
   });
 
-  const signUp = (username: string, displayName: string) => {
+  const signUp = (username: string, displayName: string, email: string = '') => {
     const newUser: User = {
       id: crypto.randomUUID(),
       username: username.toLowerCase().replace(/\s+/g, ''),
       displayName,
+      email,
       bio: '',
       createdAt: new Date(),
     };
