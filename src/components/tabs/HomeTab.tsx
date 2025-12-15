@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, PlusSquare } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, PlusSquare, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useHaptic } from '@/hooks/useHaptic';
+import { useLanguage } from '@/hooks/useLanguage';
 import { cn } from '@/lib/utils';
 
 interface Story {
   id: string;
   name: string;
+  image?: string;
   isOwn?: boolean;
   hasNewStory?: boolean;
 }
@@ -15,6 +18,7 @@ interface Post {
   id: string;
   username: string;
   content: string;
+  image?: string;
   likes: number;
   comments: number;
   timeAgo: string;
@@ -22,28 +26,37 @@ interface Post {
   isSaved: boolean;
 }
 
-export const HomeTab = () => {
-  const [stories] = useState<Story[]>([
-    { id: '1', name: 'Your Story', isOwn: true },
-  ]);
+interface HomeTabProps {
+  onCreatePost: () => void;
+  onCreateStory: () => void;
+  onNotifications: () => void;
+  stories: Story[];
+  posts: Post[];
+  onLike: (postId: string) => void;
+  onSave: (postId: string) => void;
+}
 
-  const [posts, setPosts] = useState<Post[]>([]);
+export const HomeTab = ({ 
+  onCreatePost, 
+  onCreateStory, 
+  onNotifications,
+  stories,
+  posts,
+  onLike,
+  onSave
+}: HomeTabProps) => {
   const [hasNotification] = useState(true);
+  const { trigger } = useHaptic();
+  const { t } = useLanguage();
 
   const handleLike = (postId: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
-        : post
-    ));
+    trigger('light');
+    onLike(postId);
   };
 
   const handleSave = (postId: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, isSaved: !post.isSaved }
-        : post
-    ));
+    trigger('light');
+    onSave(postId);
   };
 
   return (
@@ -51,25 +64,37 @@ export const HomeTab = () => {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Notification Icon - Left */}
-          <button className="relative p-2 -ml-2 active:scale-90 transition-transform duration-200">
-            <Heart 
-              className="w-6 h-6 text-foreground transition-transform duration-200 hover:scale-110" 
-              strokeWidth={1.5}
-            />
-            {hasNotification && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            )}
-          </button>
-
-          <h1 className="text-xl font-bold tracking-tight">Feed</h1>
-
-          {/* Create Post Icon - Right */}
-          <button className="p-2 -mr-2 active:scale-90 transition-transform duration-200">
+          {/* Create Post Icon - Left */}
+          <button 
+            onClick={() => {
+              trigger('light');
+              onCreatePost();
+            }}
+            className="p-2 -ml-2 active:scale-90 transition-transform duration-200"
+          >
             <PlusSquare 
               className="w-6 h-6 text-foreground transition-transform duration-200 hover:scale-110" 
               strokeWidth={1.5}
             />
+          </button>
+
+          <h1 className="text-xl font-bold tracking-tight">{t('feed')}</h1>
+
+          {/* Notification Icon - Right */}
+          <button 
+            onClick={() => {
+              trigger('light');
+              onNotifications();
+            }}
+            className="relative p-2 -mr-2 active:scale-90 transition-transform duration-200"
+          >
+            <Bell 
+              className="w-6 h-6 text-foreground transition-transform duration-200 hover:scale-110" 
+              strokeWidth={1.5}
+            />
+            {hasNotification && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+            )}
           </button>
         </div>
       </header>
@@ -78,21 +103,52 @@ export const HomeTab = () => {
         {/* Stories */}
         <div className="px-4 py-3 border-b border-border/30">
           <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-            {stories.map((story, index) => (
+            {/* Add Story Button */}
+            <button
+              onClick={() => {
+                trigger('light');
+                onCreateStory();
+              }}
+              className="flex flex-col items-center gap-1 min-w-[64px] animate-scale-in"
+            >
+              <div className="relative">
+                <div className="p-0.5 rounded-full bg-muted">
+                  <div className="p-0.5 bg-background rounded-full">
+                    <Avatar className="w-14 h-14">
+                      <AvatarFallback className="bg-muted text-muted-foreground">
+                        <Plus className="w-6 h-6" />
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center border-2 border-background">
+                  <Plus className="w-3 h-3 text-primary-foreground" />
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground truncate max-w-[64px]">
+                {t('yourStory')}
+              </span>
+            </button>
+
+            {stories.filter(s => !s.isOwn).map((story, index) => (
               <div 
                 key={story.id} 
                 className="flex flex-col items-center gap-1 min-w-[64px] animate-scale-in"
-                style={{ animationDelay: `${index * 50}ms` }}
+                style={{ animationDelay: `${(index + 1) * 50}ms` }}
               >
                 <div className={cn(
                   "p-0.5 rounded-full transition-transform duration-200 hover:scale-105 active:scale-95",
-                  story.isOwn ? 'bg-muted' : 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600'
+                  story.hasNewStory ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600' : 'bg-muted'
                 )}>
                   <div className="p-0.5 bg-background rounded-full">
                     <Avatar className="w-14 h-14">
-                      <AvatarFallback className="bg-muted text-muted-foreground text-lg">
-                        {story.isOwn ? '+' : story.name[0]}
-                      </AvatarFallback>
+                      {story.image ? (
+                        <img src={story.image} alt={story.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <AvatarFallback className="bg-muted text-muted-foreground text-lg">
+                          {story.name[0]}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                   </div>
                 </div>
@@ -111,9 +167,9 @@ export const HomeTab = () => {
               <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4 transition-transform duration-300 hover:scale-110">
                 <Heart className="w-10 h-10 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold mb-1">No posts yet</h3>
+              <h3 className="text-lg font-semibold mb-1">{t('noPostsYet')}</h3>
               <p className="text-muted-foreground text-sm">
-                Start following people to see their posts here
+                {t('startFollowing')}
               </p>
             </div>
           ) : (
@@ -138,9 +194,13 @@ export const HomeTab = () => {
                   </button>
                 </div>
 
-                {/* Post Image Placeholder */}
-                <div className="aspect-square bg-muted flex items-center justify-center transition-opacity duration-300">
-                  <span className="text-muted-foreground">Image</span>
+                {/* Post Image */}
+                <div className="aspect-square bg-muted flex items-center justify-center transition-opacity duration-300 overflow-hidden">
+                  {post.image ? (
+                    <img src={post.image} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-muted-foreground">Image</span>
+                  )}
                 </div>
 
                 {/* Post Actions */}
@@ -177,7 +237,7 @@ export const HomeTab = () => {
                       />
                     </button>
                   </div>
-                  <p className="font-semibold text-sm mb-1">{post.likes.toLocaleString()} likes</p>
+                  <p className="font-semibold text-sm mb-1">{post.likes.toLocaleString()} {t('likes')}</p>
                   <p className="text-sm">
                     <span className="font-semibold">{post.username}</span>{' '}
                     {post.content}
