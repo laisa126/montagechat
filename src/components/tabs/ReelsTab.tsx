@@ -26,9 +26,15 @@ export const ReelsTab = () => {
           <h1 className="text-2xl font-bold tracking-tight">Reels</h1>
         </header>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-4">
-            <Play className="w-12 h-12 text-muted-foreground ml-1" />
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center animate-fade-in">
+          {/* Smooth rounded cube with centered play button */}
+          <div className="w-24 h-24 rounded-2xl bg-muted flex items-center justify-center mb-4 transition-transform duration-300 hover:scale-105">
+            <svg
+              viewBox="0 0 24 24"
+              className="w-10 h-10 fill-muted-foreground"
+            >
+              <path d="M6 4.75a.75.75 0 0 1 1.142-.638l11.5 7.25a.75.75 0 0 1 0 1.276l-11.5 7.25A.75.75 0 0 1 6 19.25V4.75z" />
+            </svg>
           </div>
           <h3 className="text-xl font-semibold mb-2">No reels yet</h3>
           <p className="text-muted-foreground text-sm max-w-xs">

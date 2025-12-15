@@ -8,43 +8,79 @@ interface BottomNavProps {
   onTabChange: (tab: TabType) => void;
 }
 
-// Smooth rounded play button icon for Reels
+// Smooth rounded play button icon for Reels - larger and perfectly centered
 const ReelsIcon = ({ isActive }: { isActive: boolean }) => (
   <div
     className={cn(
-      "w-7 h-7 rounded-[10px] flex items-center justify-center transition-all duration-200",
+      "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200",
       isActive 
         ? "bg-foreground" 
-        : "border-2 border-muted-foreground"
+        : "border-[1.5px] border-muted-foreground"
     )}
   >
     <svg
       viewBox="0 0 24 24"
       className={cn(
-        "w-3.5 h-3.5 ml-0.5",
+        "w-4 h-4",
         isActive ? "fill-background" : "fill-muted-foreground"
       )}
     >
-      <path d="M8 5.14v14l11-7-11-7z" strokeLinejoin="round" strokeLinecap="round" />
+      <path d="M6 4.75a.75.75 0 0 1 1.142-.638l11.5 7.25a.75.75 0 0 1 0 1.276l-11.5 7.25A.75.75 0 0 1 6 19.25V4.75z" />
     </svg>
   </div>
 );
 
-// Smooth paper plane icon like Instagram DMs
+// Smooth double-line paper plane icon like Instagram DMs
 const MessagesIcon = ({ isActive }: { isActive: boolean }) => (
   <svg
     viewBox="0 0 24 24"
     className={cn(
-      "w-6 h-6 transition-all duration-200",
-      isActive ? "stroke-foreground" : "stroke-muted-foreground"
+      "w-6 h-6 transition-all duration-200"
     )}
-    fill={isActive ? "currentColor" : "none"}
-    strokeWidth={isActive ? 0 : 1.5}
-    strokeLinecap="round"
-    strokeLinejoin="round"
+    fill="none"
   >
-    <path d="M22 2L11 13" />
-    <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+    {/* Main paper plane */}
+    <path
+      d="M22 2L11 13"
+      className={cn(
+        isActive ? "stroke-foreground" : "stroke-muted-foreground"
+      )}
+      strokeWidth={isActive ? 2 : 1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M22 2L15 22L11 13L2 9L22 2Z"
+      className={cn(
+        isActive ? "stroke-foreground" : "stroke-muted-foreground"
+      )}
+      fill={isActive ? "currentColor" : "none"}
+      strokeWidth={isActive ? 2 : 1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Second trailing line for smooth double-line effect */}
+    <path
+      d="M11 13L8.5 17.5"
+      className={cn(
+        isActive ? "stroke-foreground" : "stroke-muted-foreground"
+      )}
+      strokeWidth={isActive ? 1.5 : 1}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity={0.6}
+    />
+    {/* Third trailing line */}
+    <path
+      d="M11 13L6 15"
+      className={cn(
+        isActive ? "stroke-foreground" : "stroke-muted-foreground"
+      )}
+      strokeWidth={isActive ? 1.5 : 1}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      opacity={0.4}
+    />
   </svg>
 );
 
