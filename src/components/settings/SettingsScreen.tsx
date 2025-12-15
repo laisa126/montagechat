@@ -391,13 +391,22 @@ export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user,
 
   // Language Screen
   if (currentView === 'language') {
+    const [selectedLang, setSelectedLang] = useState(() => localStorage.getItem('app-language') || 'en');
+    
+    const handleLanguageChange = (lang: string) => {
+      setSelectedLang(lang);
+      localStorage.setItem('app-language', lang);
+      window.location.reload();
+    };
+
     return (
       <div className="flex flex-col h-full bg-background">
         {renderHeader('Language')}
         <ScrollArea className="flex-1">
           <div className="py-4">
             <SettingsSection>
-              <SettingsItem icon={<Globe className="w-5 h-5" />} label="English" value="✓" hasChevron={false} />
+              <SettingsItem icon={<Globe className="w-5 h-5" />} label="English" value={selectedLang === 'en' ? '✓' : ''} hasChevron={false} onClick={() => handleLanguageChange('en')} />
+              <SettingsItem label="Kiswahili" value={selectedLang === 'sw' ? '✓' : ''} hasChevron={false} onClick={() => handleLanguageChange('sw')} />
               <SettingsItem label="Spanish" hasChevron={false} />
               <SettingsItem label="French" hasChevron={false} />
               <SettingsItem label="German" hasChevron={false} />
