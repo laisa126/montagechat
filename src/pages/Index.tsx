@@ -4,30 +4,34 @@ import { HomeTab } from '@/components/tabs/HomeTab';
 import { ChatTab } from '@/components/tabs/ChatTab';
 import { ReelsTab } from '@/components/tabs/ReelsTab';
 import { AccountTab } from '@/components/tabs/AccountTab';
+import { SignUpScreen } from '@/components/auth/SignUpScreen';
 import { Toaster } from '@/components/ui/sonner';
+import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/hooks/useTheme';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  const { user, signUp, signOut, isAuthenticated } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
-  const renderTab = () => {
-    switch (activeTab) {
-      case 'home':
-        return <HomeTab />;
-      case 'chat':
-        return <ChatTab />;
-      case 'reels':
-        return <ReelsTab />;
-      case 'account':
-        return <AccountTab />;
-      default:
-        return <HomeTab />;
-    }
-  };
+  if (!isAuthenticated) {
+    return <SignUpScreen onSignUp={signUp} />;
+  }
 
   return (
     <div className="h-screen w-full bg-background overflow-hidden flex flex-col">
       <div className="flex-1 overflow-hidden">
-        {renderTab()}
+        {activeTab === 'home' && <HomeTab />}
+        {activeTab === 'chat' && <ChatTab />}
+        {activeTab === 'reels' && <ReelsTab />}
+        {activeTab === 'account' && (
+          <AccountTab 
+            user={user!} 
+            onSignOut={signOut} 
+            isDark={isDark} 
+            onToggleTheme={toggleTheme} 
+          />
+        )}
       </div>
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
       <Toaster position="top-center" />
