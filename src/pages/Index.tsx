@@ -1,76 +1,37 @@
 import { useState } from 'react';
-import { ChatSidebar } from '@/components/chat/ChatSidebar';
-import { ChatArea } from '@/components/chat/ChatArea';
-import { NewChatDialog } from '@/components/chat/NewChatDialog';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Chat, Message } from '@/types/chat';
+import { BottomNav, TabType } from '@/components/navigation/BottomNav';
+import { HomeTab } from '@/components/tabs/HomeTab';
+import { ChatTab } from '@/components/tabs/ChatTab';
+import { ReelsTab } from '@/components/tabs/ReelsTab';
+import { AccountTab } from '@/components/tabs/AccountTab';
 import { Toaster } from '@/components/ui/sonner';
-import { toast } from 'sonner';
 
 const Index = () => {
-  const [chats, setChats] = useLocalStorage<Chat[]>('telegram-chats', []);
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('home');
 
-  const selectedChat = chats.find((chat) => chat.id === selectedChatId) || null;
-
-  const handleNewChat = (name: string) => {
-    const newChat: Chat = {
-      id: crypto.randomUUID(),
-      name,
-      messages: [],
-      isOnline: Math.random() > 0.5,
-    };
-    setChats((prev) => [newChat, ...prev]);
-    setSelectedChatId(newChat.id);
-    toast.success(`Chat with ${name} created`);
-  };
-
-  const handleSendMessage = (content: string) => {
-    if (!selectedChatId) return;
-
-    const newMessage: Message = {
-      id: crypto.randomUUID(),
-      content,
-      timestamp: new Date(),
-      isOutgoing: true,
-    };
-
-    setChats((prev) =>
-      prev.map((chat) => {
-        if (chat.id === selectedChatId) {
-          return {
-            ...chat,
-            messages: [...chat.messages, newMessage],
-            lastMessage: content,
-            lastMessageTime: new Date(),
-          };
-        }
-        return chat;
-      })
-    );
+  const renderTab = () => {
+    switch (activeTab) {
+      case 'home':
+        return <HomeTab />;
+      case 'chat':
+        return <ChatTab />;
+      case 'reels':
+        return <ReelsTab />;
+      case 'account':
+        return <AccountTab />;
+      default:
+        return <HomeTab />;
+    }
   };
 
   return (
-    <>
-      <div className="h-screen w-full flex overflow-hidden">
-        <ChatSidebar
-          chats={chats}
-          selectedChatId={selectedChatId}
-          onSelectChat={setSelectedChatId}
-          onNewChat={() => setIsNewChatOpen(true)}
-        />
-        <ChatArea chat={selectedChat} onSendMessage={handleSendMessage} />
+    <div className="h-screen w-full bg-background overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden">
+        {renderTab()}
       </div>
-
-      <NewChatDialog
-        open={isNewChatOpen}
-        onOpenChange={setIsNewChatOpen}
-        onCreateChat={handleNewChat}
-      />
-
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
       <Toaster position="top-center" />
-    </>
+    </div>
   );
 };
 
