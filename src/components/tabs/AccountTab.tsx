@@ -1,13 +1,22 @@
-import { Settings, Grid3X3, Bookmark, Heart, UserPlus } from 'lucide-react';
+import { Settings, Grid3X3, Bookmark, Heart, LogOut, Sun, Moon } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { User } from '@/types/user';
 
 type ContentTab = 'posts' | 'saved' | 'liked';
 
-export const AccountTab = () => {
+interface AccountTabProps {
+  user: User;
+  onSignOut: () => void;
+  isDark: boolean;
+  onToggleTheme: () => void;
+}
+
+export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme }: AccountTabProps) => {
   const [activeContentTab, setActiveContentTab] = useState<ContentTab>('posts');
 
   const stats = [
@@ -23,14 +32,14 @@ export const AccountTab = () => {
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold tracking-tight">username</h1>
+          <h1 className="text-xl font-bold tracking-tight">{user.username}</h1>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <UserPlus className="w-5 h-5" />
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onSignOut}>
+              <LogOut className="w-5 h-5" />
             </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9">
               <Settings className="w-5 h-5" />
@@ -47,7 +56,7 @@ export const AccountTab = () => {
               {/* Avatar */}
               <Avatar className="w-20 h-20 border-2 border-border">
                 <AvatarFallback className="bg-muted text-muted-foreground text-2xl">
-                  U
+                  {user.displayName[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
 
@@ -64,9 +73,9 @@ export const AccountTab = () => {
 
             {/* Name and Bio */}
             <div className="mt-4">
-              <h2 className="font-semibold">Your Name</h2>
+              <h2 className="font-semibold">{user.displayName}</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Add a bio to tell people more about yourself
+                {user.bio || 'Add a bio to tell people more about yourself'}
               </p>
             </div>
 
@@ -78,6 +87,17 @@ export const AccountTab = () => {
               <Button variant="secondary" className="flex-1 rounded-xl h-9">
                 Share Profile
               </Button>
+            </div>
+          </div>
+
+          {/* Theme Toggle */}
+          <div className="px-4 py-4 border-t border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                <span className="font-medium">Dark Mode</span>
+              </div>
+              <Switch checked={isDark} onCheckedChange={onToggleTheme} />
             </div>
           </div>
 
