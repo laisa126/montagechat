@@ -1,26 +1,43 @@
-import { Settings, Grid3X3, Bookmark, Heart, LogOut, Sun, Moon } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Settings, Grid3X3, Bookmark, Heart, Plus, Camera } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Switch } from '@/components/ui/switch';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { User } from '@/types/user';
+import { SettingsScreen } from '@/components/settings/SettingsScreen';
 
 type ContentTab = 'posts' | 'saved' | 'liked';
+
+interface Post {
+  id: string;
+  imageUrl: string;
+  createdAt: Date;
+}
 
 interface AccountTabProps {
   user: User;
   onSignOut: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  onUpdateUser: (updates: { displayName?: string; username?: string; bio?: string; avatarUrl?: string }) => void;
 }
 
-export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme }: AccountTabProps) => {
+export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUser }: AccountTabProps) => {
   const [activeContentTab, setActiveContentTab] = useState<ContentTab>('posts');
+  const [showSettings, setShowSettings] = useState(false);
+  const [posts, setPosts] = useState<Post[]>(() => {
+    const saved = localStorage.getItem('user_posts');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [savedPosts] = useState<Post[]>([]);
+  const [likedPosts] = useState<Post[]>([]);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const stats = [
-    { label: 'Posts', value: 0 },
+    { label: 'Posts', value: posts.length },
     { label: 'Followers', value: 0 },
     { label: 'Following', value: 0 },
   ];
@@ -31,17 +48,94 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme }: AccountTa
     { id: 'liked', icon: Heart },
   ];
 
+  const handleUploadPost = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newPost: Post = {
+          id: Date.now().toString(),
+          imageUrl: reader.result as string,
+          createdAt: new Date()
+        };
+        const updatedPosts = [newPost, ...posts];
+        setPosts(updatedPosts);
+        localStorage.setItem('user_posts', JSON.stringify(updatedPosts));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onUpdateUser({ avatarUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  if (showSettings) {
+    return (
+      <SettingsScreen
+        onBack={() => setShowSettings(false)}
+        isDark={isDark}
+        onToggleTheme={onToggleTheme}
+        onSignOut={onSignOut}
+        user={user}
+        onUpdateUser={onUpdateUser}
+      />
+    );
+  }
+
+  const getCurrentPosts = () => {
+    switch (activeContentTab) {
+      case 'posts': return posts;
+      case 'saved': return savedPosts;
+      case 'liked': return likedPosts;
+      default: return [];
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-background">
+      {/* Hidden file inputs */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleUploadPost}
+        accept="image/*"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={avatarInputRef}
+        onChange={handleUploadAvatar}
+        accept="image/*"
+        className="hidden"
+      />
+
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold tracking-tight">{user.username}</h1>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onSignOut}>
-              <LogOut className="w-5 h-5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Plus className="w-6 h-6" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9"
+              onClick={() => setShowSettings(true)}
+            >
               <Settings className="w-5 h-5" />
             </Button>
           </div>
@@ -53,20 +147,31 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme }: AccountTa
           {/* Profile Info */}
           <div className="px-4 py-6">
             <div className="flex items-start gap-6">
-              {/* Avatar */}
-              <Avatar className="w-20 h-20 border-2 border-border">
-                <AvatarFallback className="bg-muted text-muted-foreground text-2xl">
-                  {user.displayName[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              {/* Avatar with upload */}
+              <button 
+                onClick={() => avatarInputRef.current?.click()}
+                className="relative group"
+              >
+                <Avatar className="w-20 h-20 border-2 border-border">
+                  {user.avatarUrl ? (
+                    <AvatarImage src={user.avatarUrl} alt={user.displayName} />
+                  ) : null}
+                  <AvatarFallback className="bg-muted text-muted-foreground text-2xl">
+                    {user.displayName[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              </button>
 
               {/* Stats */}
               <div className="flex-1 flex justify-around pt-2">
                 {stats.map((stat) => (
-                  <div key={stat.label} className="text-center">
+                  <button key={stat.label} className="text-center active:scale-95 transition-transform">
                     <p className="font-bold text-lg">{stat.value}</p>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -81,23 +186,16 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme }: AccountTa
 
             {/* Action Buttons */}
             <div className="flex gap-2 mt-4">
-              <Button variant="secondary" className="flex-1 rounded-xl h-9">
+              <Button 
+                variant="secondary" 
+                className="flex-1 rounded-xl h-9"
+                onClick={() => setShowSettings(true)}
+              >
                 Edit Profile
               </Button>
               <Button variant="secondary" className="flex-1 rounded-xl h-9">
                 Share Profile
               </Button>
-            </div>
-          </div>
-
-          {/* Theme Toggle */}
-          <div className="px-4 py-4 border-t border-border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-                <span className="font-medium">Dark Mode</span>
-              </div>
-              <Switch checked={isDark} onCheckedChange={onToggleTheme} />
             </div>
           </div>
 
@@ -127,41 +225,70 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme }: AccountTa
           </div>
 
           {/* Content Grid */}
-          <div className="p-1">
-            {activeContentTab === 'posts' && (
-              <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-                <div className="w-16 h-16 rounded-full border-2 border-foreground flex items-center justify-center mb-4">
-                  <Grid3X3 className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">Share Photos</h3>
-                <p className="text-muted-foreground text-sm">
-                  When you share photos, they will appear on your profile.
-                </p>
+          <div className="p-0.5">
+            {getCurrentPosts().length > 0 ? (
+              <div className="grid grid-cols-3 gap-0.5">
+                {getCurrentPosts().map((post) => (
+                  <button 
+                    key={post.id} 
+                    className="aspect-square bg-muted overflow-hidden active:opacity-80 transition-opacity"
+                  >
+                    <img 
+                      src={post.imageUrl} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
               </div>
-            )}
+            ) : (
+              <>
+                {activeContentTab === 'posts' && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-16 h-16 rounded-full border-2 border-foreground flex items-center justify-center mb-4 active:scale-95 transition-transform"
+                    >
+                      <Camera className="w-8 h-8" />
+                    </button>
+                    <h3 className="text-2xl font-bold mb-2">Share Photos</h3>
+                    <p className="text-muted-foreground text-sm">
+                      When you share photos, they will appear on your profile.
+                    </p>
+                    <Button 
+                      variant="link" 
+                      className="mt-4 text-primary"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Upload your first photo
+                    </Button>
+                  </div>
+                )}
 
-            {activeContentTab === 'saved' && (
-              <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-                <div className="w-16 h-16 rounded-full border-2 border-foreground flex items-center justify-center mb-4">
-                  <Bookmark className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">Save</h3>
-                <p className="text-muted-foreground text-sm">
-                  Save photos and videos that you want to see again.
-                </p>
-              </div>
-            )}
+                {activeContentTab === 'saved' && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                    <div className="w-16 h-16 rounded-full border-2 border-foreground flex items-center justify-center mb-4">
+                      <Bookmark className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">Save</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Save photos and videos that you want to see again.
+                    </p>
+                  </div>
+                )}
 
-            {activeContentTab === 'liked' && (
-              <div className="flex flex-col items-center justify-center py-16 text-center px-6">
-                <div className="w-16 h-16 rounded-full border-2 border-foreground flex items-center justify-center mb-4">
-                  <Heart className="w-8 h-8" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">Liked Posts</h3>
-                <p className="text-muted-foreground text-sm">
-                  Posts you've liked will appear here.
-                </p>
-              </div>
+                {activeContentTab === 'liked' && (
+                  <div className="flex flex-col items-center justify-center py-16 text-center px-6">
+                    <div className="w-16 h-16 rounded-full border-2 border-foreground flex items-center justify-center mb-4">
+                      <Heart className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">Liked Posts</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Posts you've liked will appear here.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

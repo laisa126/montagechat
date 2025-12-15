@@ -1,4 +1,4 @@
-import { Home, MessageCircle, User, Play } from 'lucide-react';
+import { Home, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type TabType = 'home' | 'chat' | 'reels' | 'account';
@@ -8,29 +8,49 @@ interface BottomNavProps {
   onTabChange: (tab: TabType) => void;
 }
 
+// Smooth rounded play button icon for Reels
 const ReelsIcon = ({ isActive }: { isActive: boolean }) => (
   <div
     className={cn(
-      "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200",
+      "w-7 h-7 rounded-[10px] flex items-center justify-center transition-all duration-200",
       isActive 
         ? "bg-foreground" 
         : "border-2 border-muted-foreground"
     )}
   >
-    <Play
+    <svg
+      viewBox="0 0 24 24"
       className={cn(
         "w-3.5 h-3.5 ml-0.5",
-        isActive 
-          ? "text-background fill-background" 
-          : "text-muted-foreground fill-muted-foreground"
+        isActive ? "fill-background" : "fill-muted-foreground"
       )}
-    />
+    >
+      <path d="M8 5.14v14l11-7-11-7z" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
   </div>
+);
+
+// Smooth paper plane icon like Instagram DMs
+const MessagesIcon = ({ isActive }: { isActive: boolean }) => (
+  <svg
+    viewBox="0 0 24 24"
+    className={cn(
+      "w-6 h-6 transition-all duration-200",
+      isActive ? "stroke-foreground" : "stroke-muted-foreground"
+    )}
+    fill={isActive ? "currentColor" : "none"}
+    strokeWidth={isActive ? 0 : 1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M22 2L11 13" />
+    <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+  </svg>
 );
 
 const navItems: { id: TabType; icon: typeof Home | null }[] = [
   { id: 'home', icon: Home },
-  { id: 'chat', icon: MessageCircle },
+  { id: 'chat', icon: null },
   { id: 'reels', icon: null },
   { id: 'account', icon: User },
 ];
@@ -54,6 +74,8 @@ export const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
             >
               {item.id === 'reels' ? (
                 <ReelsIcon isActive={isActive} />
+              ) : item.id === 'chat' ? (
+                <MessagesIcon isActive={isActive} />
               ) : Icon ? (
                 <Icon
                   className={cn(

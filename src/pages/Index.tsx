@@ -11,7 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const { user, signUp, signOut, isAuthenticated } = useAuth();
+  const { user, signUp, updateUser, signOut, isAuthenticated } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
   if (!isAuthenticated) {
@@ -29,7 +29,8 @@ const Index = () => {
             user={user!} 
             onSignOut={signOut} 
             isDark={isDark} 
-            onToggleTheme={toggleTheme} 
+            onToggleTheme={toggleTheme}
+            onUpdateUser={updateUser}
           />
         )}
       </div>
