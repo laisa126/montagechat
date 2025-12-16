@@ -5,17 +5,14 @@ import { ChatTab } from '@/components/tabs/ChatTab';
 import { ReelsTab } from '@/components/tabs/ReelsTab';
 import { AccountTab } from '@/components/tabs/AccountTab';
 import { SignUpScreen } from '@/components/auth/SignUpScreen';
-import { NotificationsScreen } from '@/components/notifications/NotificationsScreen';
-import { PostCreationScreen } from '@/components/create/PostCreationScreen';
-import { StoryCreationScreen } from '@/components/create/StoryCreationScreen';
 import { Toaster } from '@/components/ui/sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
+import { ScreenRouter } from '@/navigation/ScreenRouter';
 import { cn } from '@/lib/utils';
-
-type Screen = 'main' | 'notifications' | 'create-post' | 'create-story';
 
 interface Story {
   id: string;
@@ -32,6 +29,7 @@ interface Story {
 interface Post {
   id: string;
   username: string;
+  userId: string;
   content: string;
   image?: string;
   likes: number;
@@ -41,12 +39,12 @@ interface Post {
   isSaved: boolean;
 }
 
-const Index = () => {
+const MainContent = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [currentScreen, setCurrentScreen] = useState<Screen>('main');
   const { user, signUp, updateUser, signOut, isAuthenticated } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { swipeOffset, isSwiping, swipeHandlers } = useSwipeNavigation(activeTab, setActiveTab);
+  const { currentNode, navigate, clearHistory, setOriginTab } = useNavigation();
   
   const [stories, setStories] = useLocalStorage<Story[]>('app-stories', []);
   const [posts, setPosts] = useLocalStorage<Post[]>('app-posts', []);
@@ -59,6 +57,7 @@ const Index = () => {
     const newPost: Post = {
       id: Date.now().toString(),
       username: user?.username || 'user',
+      userId: user?.id || 'current_user',
       content: post.caption,
       image: post.image,
       likes: 0,
@@ -68,7 +67,6 @@ const Index = () => {
       isSaved: false
     };
     setPosts(prev => [newPost, ...prev]);
-    setCurrentScreen('main');
   };
 
   const handleCreateStory = (story: { image: string; text?: string; music?: { name: string; artist: string } }) => {
@@ -83,7 +81,6 @@ const Index = () => {
       timestamp: 'Just now'
     };
     setStories(prev => [newStory, ...prev]);
-    setCurrentScreen('main');
   };
 
   const handleStoryViewed = (storyId: string) => {
@@ -110,17 +107,42 @@ const Index = () => {
     ));
   };
 
-  // Render independent screens
-  if (currentScreen === 'notifications') {
-    return <NotificationsScreen onBack={() => setCurrentScreen('main')} />;
-  }
+  const handleTabChange = (tab: TabType) => {
+    clearHistory();
+    setOriginTab(tab);
+    setActiveTab(tab);
+  };
 
-  if (currentScreen === 'create-post') {
-    return <PostCreationScreen onBack={() => setCurrentScreen('main')} onPost={handleCreatePost} />;
-  }
+  const handleNavigate = (screen: 'notifications' | 'create-post' | 'create-story') => {
+    navigate(screen);
+  };
 
-  if (currentScreen === 'create-story') {
-    return <StoryCreationScreen onBack={() => setCurrentScreen('main')} onPost={handleCreateStory} />;
+  // If there's a current navigation node, render the screen router
+  if (currentNode) {
+    return (
+      <div className="h-screen w-full bg-background overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-hidden">
+          <ScreenRouter
+            onBack={() => clearHistory()}
+            onCreatePost={handleCreatePost}
+            onCreateStory={handleCreateStory}
+            isDark={isDark}
+            onToggleTheme={toggleTheme}
+            onSignOut={signOut}
+            user={user ? {
+              displayName: user.displayName,
+              username: user.username,
+              email: user.email,
+              bio: user.bio,
+              avatarUrl: user.avatarUrl
+            } : undefined}
+            onUpdateUser={updateUser}
+          />
+        </div>
+        <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+        <Toaster position="top-center" />
+      </div>
+    );
   }
 
   const renderTab = () => {
@@ -128,9 +150,9 @@ const Index = () => {
       case 'home':
         return (
           <HomeTab 
-            onCreatePost={() => setCurrentScreen('create-post')}
-            onCreateStory={() => setCurrentScreen('create-story')}
-            onNotifications={() => setCurrentScreen('notifications')}
+            onCreatePost={() => handleNavigate('create-post')}
+            onCreateStory={() => handleNavigate('create-story')}
+            onNotifications={() => handleNavigate('notifications')}
             stories={stories}
             posts={posts}
             onLike={handleLike}
@@ -155,9 +177,9 @@ const Index = () => {
       default:
         return (
           <HomeTab 
-            onCreatePost={() => setCurrentScreen('create-post')}
-            onCreateStory={() => setCurrentScreen('create-story')}
-            onNotifications={() => setCurrentScreen('notifications')}
+            onCreatePost={() => handleNavigate('create-post')}
+            onCreateStory={() => handleNavigate('create-story')}
+            onNotifications={() => handleNavigate('notifications')}
             stories={stories}
             posts={posts}
             onLike={handleLike}
@@ -182,9 +204,17 @@ const Index = () => {
       >
         {renderTab()}
       </div>
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       <Toaster position="top-center" />
     </div>
+  );
+};
+
+const Index = () => {
+  return (
+    <NavigationProvider>
+      <MainContent />
+    </NavigationProvider>
   );
 };
 
