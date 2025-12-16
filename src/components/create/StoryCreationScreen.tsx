@@ -1,19 +1,27 @@
 import { useState, useRef } from 'react';
-import { ChevronLeft, Image, Camera, Type, Smile, Sparkles, Palette, PenTool, Music, MapPin, AtSign, Hash, Sun, Contrast } from 'lucide-react';
+import { ChevronLeft, Image, Camera, Type, Smile, Sparkles, PenTool, Music, MapPin, AtSign, Hash, Sun, Contrast, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLanguage } from '@/hooks/useLanguage';
+import { MusicPicker } from '@/components/stories/MusicPicker';
 import { cn } from '@/lib/utils';
+
+interface Track {
+  id: string;
+  name: string;
+  artist: string;
+  duration: string;
+}
 
 interface StoryCreationScreenProps {
   onBack: () => void;
-  onPost: (story: { image: string; text?: string }) => void;
+  onPost: (story: { image: string; text?: string; music?: { name: string; artist: string } }) => void;
 }
 
-type EditTool = 'text' | 'draw' | 'stickers' | 'filters' | 'adjust' | null;
+type EditTool = 'text' | 'draw' | 'stickers' | 'filters' | 'adjust' | 'music' | null;
 
 const STORY_FILTERS = [
   { id: 'none', name: 'Normal', style: {} },
@@ -48,6 +56,7 @@ export const StoryCreationScreen = ({ onBack, onPost }: StoryCreationScreenProps
   const [textColor, setTextColor] = useState('hsl(0, 0%, 100%)');
   const [placedStickers, setPlacedStickers] = useState<string[]>([]);
   const [adjustments, setAdjustments] = useState({ brightness: 100, contrast: 100 });
+  const [selectedMusic, setSelectedMusic] = useState<Track | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { trigger } = useHaptic();
   const { t } = useLanguage();
@@ -70,7 +79,8 @@ export const StoryCreationScreen = ({ onBack, onPost }: StoryCreationScreenProps
     trigger('success');
     onPost({
       image: selectedImage,
-      text: overlayText || undefined
+      text: overlayText || undefined,
+      music: selectedMusic ? { name: selectedMusic.name, artist: selectedMusic.artist } : undefined
     });
   };
 
@@ -218,6 +228,7 @@ export const StoryCreationScreen = ({ onBack, onPost }: StoryCreationScreenProps
           { tool: 'stickers' as EditTool, icon: Smile },
           { tool: 'filters' as EditTool, icon: Sparkles },
           { tool: 'adjust' as EditTool, icon: Sun },
+          { tool: 'music' as EditTool, icon: Music },
         ].map(({ tool, icon: Icon }) => (
           <button
             key={tool}
@@ -229,13 +240,38 @@ export const StoryCreationScreen = ({ onBack, onPost }: StoryCreationScreenProps
               "w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90",
               activeTool === tool 
                 ? "bg-white text-black" 
-                : "bg-black/30 backdrop-blur-sm text-white"
+                : "bg-black/30 backdrop-blur-sm text-white",
+              tool === 'music' && selectedMusic && "ring-2 ring-primary"
             )}
           >
             <Icon className="w-5 h-5" />
           </button>
         ))}
       </div>
+
+      {/* Selected Music Indicator */}
+      {selectedMusic && !activeTool && (
+        <div className="absolute bottom-24 left-4 right-4 safe-area-bottom animate-fade-in">
+          <div className="flex items-center gap-3 bg-black/40 backdrop-blur-sm rounded-full px-4 py-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center animate-pulse">
+              <Music className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-medium truncate">{selectedMusic.name}</p>
+              <p className="text-white/60 text-xs truncate">{selectedMusic.artist}</p>
+            </div>
+            <button
+              onClick={() => {
+                trigger('light');
+                setSelectedMusic(null);
+              }}
+              className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center"
+            >
+              <X className="w-3 h-3 text-white" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Active Tool Panel */}
       {activeTool && (
@@ -351,14 +387,35 @@ export const StoryCreationScreen = ({ onBack, onPost }: StoryCreationScreenProps
               <p className="text-white/50 text-sm">{t('draw')} - Coming soon</p>
             </div>
           )}
+
+          {activeTool === 'music' && (
+            <div className="h-80">
+              <MusicPicker
+                selectedTrack={selectedMusic}
+                onSelect={(track) => {
+                  setSelectedMusic(track);
+                  if (track) {
+                    trigger('success');
+                    setActiveTool(null);
+                  }
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
 
       {/* Bottom Quick Actions */}
-      {!activeTool && (
+      {!activeTool && !selectedMusic && (
         <div className="absolute bottom-0 left-0 right-0 p-4 safe-area-bottom">
           <div className="flex justify-center gap-6">
-            <button className="flex flex-col items-center gap-1 active:scale-90 transition-transform">
+            <button 
+              onClick={() => {
+                trigger('light');
+                setActiveTool('music');
+              }}
+              className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+            >
               <div className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
                 <Music className="w-5 h-5 text-white" />
               </div>

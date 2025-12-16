@@ -102,6 +102,10 @@ export default {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.6" },
         },
+        "audio-bar": {
+          "0%, 100%": { height: "8px" },
+          "50%": { height: "20px" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -110,6 +114,7 @@ export default {
         "slide-in-right": "slide-in-right 0.25s ease-out",
         "scale-in": "scale-in 0.15s ease-out",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "audio-bar": "audio-bar 0.5s ease-in-out infinite",
       },
     },
   },
