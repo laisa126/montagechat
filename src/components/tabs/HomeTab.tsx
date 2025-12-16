@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLanguage } from '@/hooks/useLanguage';
 import { StoryViewer } from '@/components/stories/StoryViewer';
+import { NavigableAvatar, NavigableUsername, NavigableLikeCount, NavigableComment } from '@/navigation/NavigableElements';
 import { cn } from '@/lib/utils';
 
 interface Story {
@@ -22,6 +23,7 @@ interface Story {
 interface Post {
   id: string;
   username: string;
+  userId?: string;
   content: string;
   image?: string;
   likes: number;
@@ -207,12 +209,16 @@ export const HomeTab = ({
                 {/* Post Header */}
                 <div className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-8 h-8 transition-transform duration-200 hover:scale-110">
-                      <AvatarFallback className="bg-muted text-xs">
-                        {post.username[0].toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-semibold text-sm">{post.username}</span>
+                    <NavigableAvatar
+                      userId={post.userId || post.id}
+                      username={post.username}
+                      displayName={post.username}
+                      size="sm"
+                    />
+                    <NavigableUsername
+                      userId={post.userId || post.id}
+                      username={post.username}
+                    />
                   </div>
                   <button className="p-1 active:scale-90 transition-transform">
                     <MoreHorizontal className="w-5 h-5 text-foreground" />
@@ -243,9 +249,9 @@ export const HomeTab = ({
                           )} 
                         />
                       </button>
-                      <button className="active:scale-90 transition-transform duration-200">
+                      <NavigableComment postId={post.id}>
                         <MessageCircle className="w-6 h-6 text-foreground" />
-                      </button>
+                      </NavigableComment>
                       <button className="active:scale-90 transition-transform duration-200">
                         <Send className="w-6 h-6 text-foreground" />
                       </button>
@@ -262,11 +268,18 @@ export const HomeTab = ({
                       />
                     </button>
                   </div>
-                  <p className="font-semibold text-sm mb-1">{post.likes.toLocaleString()} {t('likes')}</p>
-                  <p className="text-sm">
-                    <span className="font-semibold">{post.username}</span>{' '}
+                  <NavigableLikeCount postId={post.id} count={post.likes} />
+                  <p className="text-sm mt-1">
+                    <NavigableUsername
+                      userId={post.userId || post.id}
+                      username={post.username}
+                      className="mr-1"
+                    />
                     {post.content}
                   </p>
+                  {post.comments > 0 && (
+                    <NavigableComment postId={post.id} commentCount={post.comments} className="mt-1 block" />
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">{post.timeAgo}</p>
                 </div>
               </article>
