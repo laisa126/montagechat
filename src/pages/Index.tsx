@@ -23,6 +23,10 @@ interface Story {
   image?: string;
   isOwn?: boolean;
   hasNewStory?: boolean;
+  storyImage?: string;
+  text?: string;
+  music?: { name: string; artist: string };
+  timestamp?: string;
 }
 
 interface Post {
@@ -67,15 +71,27 @@ const Index = () => {
     setCurrentScreen('main');
   };
 
-  const handleCreateStory = (story: { image: string; text?: string }) => {
+  const handleCreateStory = (story: { image: string; text?: string; music?: { name: string; artist: string } }) => {
     const newStory: Story = {
       id: Date.now().toString(),
       name: user?.displayName || 'Your Story',
-      image: story.image,
-      hasNewStory: true
+      image: user?.avatarUrl,
+      storyImage: story.image,
+      text: story.text,
+      music: story.music,
+      hasNewStory: true,
+      timestamp: 'Just now'
     };
     setStories(prev => [newStory, ...prev]);
     setCurrentScreen('main');
+  };
+
+  const handleStoryViewed = (storyId: string) => {
+    setStories(prev => prev.map(story => 
+      story.id === storyId 
+        ? { ...story, hasNewStory: false }
+        : story
+    ));
   };
 
   const handleLike = (postId: string) => {
@@ -119,6 +135,7 @@ const Index = () => {
             posts={posts}
             onLike={handleLike}
             onSave={handleSave}
+            onStoryViewed={handleStoryViewed}
           />
         );
       case 'chat':
@@ -145,6 +162,7 @@ const Index = () => {
             posts={posts}
             onLike={handleLike}
             onSave={handleSave}
+            onStoryViewed={handleStoryViewed}
           />
         );
     }

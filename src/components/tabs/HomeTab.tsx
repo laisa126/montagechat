@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLanguage } from '@/hooks/useLanguage';
+import { StoryViewer } from '@/components/stories/StoryViewer';
 import { cn } from '@/lib/utils';
 
 interface Story {
@@ -12,6 +13,10 @@ interface Story {
   image?: string;
   isOwn?: boolean;
   hasNewStory?: boolean;
+  storyImage?: string;
+  text?: string;
+  music?: { name: string; artist: string };
+  timestamp?: string;
 }
 
 interface Post {
@@ -34,6 +39,7 @@ interface HomeTabProps {
   posts: Post[];
   onLike: (postId: string) => void;
   onSave: (postId: string) => void;
+  onStoryViewed?: (storyId: string) => void;
 }
 
 export const HomeTab = ({ 
@@ -43,9 +49,11 @@ export const HomeTab = ({
   stories,
   posts,
   onLike,
-  onSave
+  onSave,
+  onStoryViewed
 }: HomeTabProps) => {
   const [hasNotification] = useState(true);
+  const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const { trigger } = useHaptic();
   const { t } = useLanguage();
 
@@ -59,8 +67,24 @@ export const HomeTab = ({
     onSave(postId);
   };
 
+  const handleViewStory = (index: number) => {
+    trigger('medium');
+    setViewingStoryIndex(index);
+  };
+
+  const viewableStories = stories.filter(s => !s.isOwn && s.hasNewStory);
+
   return (
     <div className="flex flex-col h-full animate-fade-in">
+      {/* Story Viewer */}
+      {viewingStoryIndex !== null && viewableStories.length > 0 && (
+        <StoryViewer
+          stories={viewableStories}
+          initialIndex={viewingStoryIndex}
+          onClose={() => setViewingStoryIndex(null)}
+          onStoryViewed={onStoryViewed}
+        />
+      )}
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 py-3">
         <div className="flex items-center justify-between">
@@ -131,8 +155,9 @@ export const HomeTab = ({
             </button>
 
             {stories.filter(s => !s.isOwn).map((story, index) => (
-              <div 
+              <button 
                 key={story.id} 
+                onClick={() => story.hasNewStory && handleViewStory(stories.filter(s => !s.isOwn && s.hasNewStory).findIndex(s => s.id === story.id))}
                 className="flex flex-col items-center gap-1 min-w-[64px] animate-scale-in"
                 style={{ animationDelay: `${(index + 1) * 50}ms` }}
               >
@@ -155,7 +180,7 @@ export const HomeTab = ({
                 <span className="text-xs text-muted-foreground truncate max-w-[64px]">
                   {story.name}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
