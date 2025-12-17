@@ -7,3 +7,4 @@ export * from './screens/PostDetailScreen';
 export * from './screens/CommentThreadScreen';
 export * from './screens/ReelViewerScreen';
 export * from './screens/SearchScreen';
+export * from './screens/FollowListScreen';
