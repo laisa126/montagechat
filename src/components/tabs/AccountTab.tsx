@@ -2,11 +2,12 @@ import { Settings, Grid3X3, Bookmark, Heart, Plus, Camera } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { User } from '@/types/user';
 import { useNavigation } from '@/navigation/NavigationContext';
 import { useHaptic } from '@/hooks/useHaptic';
+import { useFollows } from '@/hooks/useFollows';
 
 type ContentTab = 'posts' | 'saved' | 'liked';
 
@@ -27,6 +28,8 @@ interface AccountTabProps {
 export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUser }: AccountTabProps) => {
   const { navigate } = useNavigation();
   const { trigger } = useHaptic();
+  const { getFollowerCount, getFollowingCount, registerUser } = useFollows(user.id);
+  
   const [activeContentTab, setActiveContentTab] = useState<ContentTab>('posts');
   const [posts, setPosts] = useState<Post[]>(() => {
     const saved = localStorage.getItem('user_posts');
@@ -38,10 +41,43 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
+  const followerCount = getFollowerCount(user.id);
+  const followingCount = getFollowingCount(user.id);
+
+  // Register current user for follow system
+  useEffect(() => {
+    registerUser({
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl
+    });
+  }, [user, registerUser]);
+
+  const handleFollowersTap = () => {
+    trigger('light');
+    navigate('follow-list', { 
+      userId: user.id, 
+      username: user.username, 
+      initialTab: 'followers',
+      currentUserId: user.id
+    });
+  };
+
+  const handleFollowingTap = () => {
+    trigger('light');
+    navigate('follow-list', { 
+      userId: user.id, 
+      username: user.username, 
+      initialTab: 'following',
+      currentUserId: user.id
+    });
+  };
+
   const stats = [
-    { label: 'Posts', value: posts.length },
-    { label: 'Followers', value: 0 },
-    { label: 'Following', value: 0 },
+    { label: 'Posts', value: posts.length, onTap: undefined },
+    { label: 'Followers', value: followerCount, onTap: handleFollowersTap },
+    { label: 'Following', value: followingCount, onTap: handleFollowingTap },
   ];
 
   const contentTabs: { id: ContentTab; icon: typeof Grid3X3 }[] = [
@@ -167,7 +203,15 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
               {/* Stats */}
               <div className="flex-1 flex justify-around pt-2">
                 {stats.map((stat) => (
-                  <button key={stat.label} className="text-center active:scale-95 transition-transform">
+                  <button 
+                    key={stat.label} 
+                    onClick={stat.onTap}
+                    disabled={!stat.onTap}
+                    className={cn(
+                      "text-center transition-transform",
+                      stat.onTap && "active:scale-95"
+                    )}
+                  >
                     <p className="font-bold text-lg">{stat.value}</p>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
                   </button>

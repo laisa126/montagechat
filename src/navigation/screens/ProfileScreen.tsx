@@ -7,6 +7,7 @@ import { useNavigation } from '../NavigationContext';
 import { NavigablePost } from '../NavigableElements';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useFollows } from '@/hooks/useFollows';
 import { cn } from '@/lib/utils';
 
 type ContentTab = 'posts' | 'reels' | 'saved';
@@ -16,6 +17,7 @@ interface ProfileScreenProps {
   username: string;
   displayName: string;
   avatarUrl?: string;
+  currentUserId?: string;
 }
 
 interface Post {
@@ -28,16 +30,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   userId,
   username,
   displayName,
-  avatarUrl
+  avatarUrl,
+  currentUserId
 }) => {
   const { goBack, navigate, updateState, currentNode } = useNavigation();
   const { trigger } = useHaptic();
+  const { 
+    isFollowing, 
+    toggleFollow, 
+    getFollowerCount, 
+    getFollowingCount,
+    registerUser 
+  } = useFollows(currentUserId);
+  
   const [activeTab, setActiveTab] = useState<ContentTab>(
     (currentNode?.state?.selectedTab as ContentTab) || 'posts'
   );
   
   const [userPosts] = useLocalStorage<Post[]>(`profile_posts_${userId}`, []);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const isOwnProfile = userId === currentUserId;
+  const following = isFollowing(userId);
+  const followerCount = getFollowerCount(userId);
+  const followingCount = getFollowingCount(userId);
+
+  // Register this user for follow system
+  useEffect(() => {
+    registerUser({ id: userId, username, displayName, avatarUrl });
+  }, [userId, username, displayName, avatarUrl, registerUser]);
 
   // Restore scroll position
   useEffect(() => {
@@ -48,7 +69,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const handleBack = () => {
     trigger('light');
-    // Save state before going back
     if (scrollRef.current) {
       updateState({ 
         scrollPosition: scrollRef.current.scrollTop,
@@ -73,10 +93,40 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     }
   };
 
+  const handleFollowToggle = () => {
+    trigger('medium');
+    toggleFollow(userId, { id: userId, username, displayName, avatarUrl });
+  };
+
+  const handleFollowersTap = () => {
+    trigger('light');
+    navigate('follow-list', { 
+      userId, 
+      username, 
+      initialTab: 'followers',
+      currentUserId 
+    });
+  };
+
+  const handleFollowingTap = () => {
+    trigger('light');
+    navigate('follow-list', { 
+      userId, 
+      username, 
+      initialTab: 'following',
+      currentUserId 
+    });
+  };
+
+  const handleMessageTap = () => {
+    trigger('light');
+    navigate('dm-thread', { userId, username });
+  };
+
   const stats = [
-    { label: 'Posts', value: userPosts.length },
-    { label: 'Followers', value: Math.floor(Math.random() * 1000) },
-    { label: 'Following', value: Math.floor(Math.random() * 500) }
+    { label: 'Posts', value: userPosts.length, onTap: undefined },
+    { label: 'Followers', value: followerCount, onTap: handleFollowersTap },
+    { label: 'Following', value: followingCount, onTap: handleFollowingTap }
   ];
 
   const tabs: { id: ContentTab; icon: typeof Grid3X3 }[] = [
@@ -123,7 +173,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 {stats.map((stat) => (
                   <button 
                     key={stat.label} 
-                    className="text-center active:scale-95 transition-transform"
+                    onClick={stat.onTap}
+                    disabled={!stat.onTap}
+                    className={cn(
+                      "text-center transition-transform",
+                      stat.onTap && "active:scale-95"
+                    )}
                   >
                     <p className="font-bold text-lg">{stat.value}</p>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -140,12 +195,33 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </div>
 
             <div className="flex gap-2 mt-4">
-              <Button variant="secondary" className="flex-1 rounded-xl h-9">
-                Follow
-              </Button>
-              <Button variant="secondary" className="flex-1 rounded-xl h-9">
-                Message
-              </Button>
+              {isOwnProfile ? (
+                <>
+                  <Button variant="secondary" className="flex-1 rounded-xl h-9">
+                    Edit Profile
+                  </Button>
+                  <Button variant="secondary" className="flex-1 rounded-xl h-9">
+                    Share Profile
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant={following ? "outline" : "default"}
+                    className="flex-1 rounded-xl h-9"
+                    onClick={handleFollowToggle}
+                  >
+                    {following ? 'Following' : 'Follow'}
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    className="flex-1 rounded-xl h-9"
+                    onClick={handleMessageTap}
+                  >
+                    Message
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 

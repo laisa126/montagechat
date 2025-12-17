@@ -5,6 +5,7 @@ import { PostDetailScreen } from './screens/PostDetailScreen';
 import { CommentThreadScreen } from './screens/CommentThreadScreen';
 import { ReelViewerScreen } from './screens/ReelViewerScreen';
 import { SearchScreen } from './screens/SearchScreen';
+import { FollowListScreen } from './screens/FollowListScreen';
 import { NotificationsScreen } from '@/components/notifications/NotificationsScreen';
 import { PostCreationScreen } from '@/components/create/PostCreationScreen';
 import { StoryCreationScreen } from '@/components/create/StoryCreationScreen';
@@ -18,6 +19,7 @@ interface ScreenRouterProps {
   onToggleTheme?: () => void;
   onSignOut?: () => void;
   user?: {
+    id?: string;
     displayName: string;
     username: string;
     email: string;
@@ -49,6 +51,7 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
   };
 
   const params = currentNode.params || {};
+  const currentUserId = user?.id;
 
   switch (currentNode.screen) {
     case 'profile':
@@ -58,6 +61,7 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
           username={params.username as string}
           displayName={params.displayName as string}
           avatarUrl={params.avatarUrl as string}
+          currentUserId={currentUserId}
         />
       );
 
@@ -93,6 +97,16 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
         <SearchScreen
           initialQuery={params.query as string}
           initialType={params.type as string}
+        />
+      );
+
+    case 'follow-list':
+      return (
+        <FollowListScreen
+          userId={params.userId as string}
+          username={params.username as string}
+          initialTab={params.initialTab as 'followers' | 'following'}
+          currentUserId={currentUserId}
         />
       );
 
