@@ -3,6 +3,8 @@ import { useNavigation } from './NavigationContext';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { PostDetailScreen } from './screens/PostDetailScreen';
 import { CommentThreadScreen } from './screens/CommentThreadScreen';
+import { ReelViewerScreen } from './screens/ReelViewerScreen';
+import { SearchScreen } from './screens/SearchScreen';
 import { NotificationsScreen } from '@/components/notifications/NotificationsScreen';
 import { PostCreationScreen } from '@/components/create/PostCreationScreen';
 import { StoryCreationScreen } from '@/components/create/StoryCreationScreen';
@@ -74,6 +76,23 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
       return (
         <CommentThreadScreen
           postId={params.postId as string}
+        />
+      );
+
+    case 'reel-viewer':
+      return (
+        <ReelViewerScreen
+          reelId={params.reelId as string}
+          initialIndex={params.initialIndex as number}
+        />
+      );
+
+    case 'search':
+    case 'search-results':
+      return (
+        <SearchScreen
+          initialQuery={params.query as string}
+          initialType={params.type as string}
         />
       );
 

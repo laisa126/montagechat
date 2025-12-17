@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, PlusSquare, Plus } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, PlusSquare, Plus, Search } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLanguage } from '@/hooks/useLanguage';
 import { StoryViewer } from '@/components/stories/StoryViewer';
 import { NavigableAvatar, NavigableUsername, NavigableLikeCount, NavigableComment } from '@/navigation/NavigableElements';
+import { useNavigation } from '@/navigation/NavigationContext';
 import { cn } from '@/lib/utils';
 
 interface Story {
@@ -58,6 +59,12 @@ export const HomeTab = ({
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const { trigger } = useHaptic();
   const { t } = useLanguage();
+  const { navigate } = useNavigation();
+
+  const handleSearch = () => {
+    trigger('light');
+    navigate('search');
+  };
 
   const handleLike = (postId: string) => {
     trigger('light');
@@ -106,22 +113,35 @@ export const HomeTab = ({
 
           <h1 className="text-xl font-bold tracking-tight">{t('feed')}</h1>
 
-          {/* Notification Icon - Right */}
-          <button 
-            onClick={() => {
-              trigger('light');
-              onNotifications();
-            }}
-            className="relative p-2 -mr-2 active:scale-90 transition-transform duration-200"
-          >
-            <Bell 
-              className="w-6 h-6 text-foreground transition-transform duration-200 hover:scale-110" 
-              strokeWidth={1.5}
-            />
-            {hasNotification && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse" />
-            )}
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Search Icon */}
+            <button 
+              onClick={handleSearch}
+              className="p-2 active:scale-90 transition-transform duration-200"
+            >
+              <Search 
+                className="w-6 h-6 text-foreground transition-transform duration-200 hover:scale-110" 
+                strokeWidth={1.5}
+              />
+            </button>
+
+            {/* Notification Icon */}
+            <button 
+              onClick={() => {
+                trigger('light');
+                onNotifications();
+              }}
+              className="relative p-2 -mr-2 active:scale-90 transition-transform duration-200"
+            >
+              <Bell 
+                className="w-6 h-6 text-foreground transition-transform duration-200 hover:scale-110" 
+                strokeWidth={1.5}
+              />
+              {hasNotification && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 

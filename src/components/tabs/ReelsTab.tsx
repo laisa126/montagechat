@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, Music2, MoreVertical, Play } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, Music2, MoreVertical, Search } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useNavigation } from '@/navigation/NavigationContext';
+import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
 
 interface Reel {
   id: string;
   username: string;
+  userId: string;
   caption: string;
   audioName: string;
   likes: number;
@@ -15,27 +18,50 @@ interface Reel {
 }
 
 export const ReelsTab = () => {
+  const { navigate } = useNavigation();
+  const { trigger } = useHaptic();
   const [reels] = useState<Reel[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handleOpenReel = (index: number) => {
+    trigger('medium');
+    navigate('reel-viewer', { initialIndex: index });
+  };
+
+  const handleSearch = () => {
+    trigger('light');
+    navigate('search');
+  };
 
   if (reels.length === 0) {
     return (
       <div className="flex flex-col h-full bg-background">
         {/* Header */}
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 py-3">
-          <h1 className="text-2xl font-bold tracking-tight">Reels</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold tracking-tight">Reels</h1>
+            <button 
+              onClick={handleSearch}
+              className="p-2 -mr-2 active:scale-90 transition-transform"
+            >
+              <Search className="w-6 h-6" />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center animate-fade-in">
           {/* Smooth rounded cube with centered play button */}
-          <div className="w-24 h-24 rounded-2xl bg-muted flex items-center justify-center mb-4 transition-transform duration-300 hover:scale-105">
+          <button 
+            onClick={() => handleOpenReel(0)}
+            className="w-24 h-24 rounded-2xl bg-muted flex items-center justify-center mb-4 transition-transform duration-300 hover:scale-105 active:scale-95"
+          >
             <svg
               viewBox="0 0 24 24"
               className="w-10 h-10 fill-muted-foreground"
             >
               <path d="M6 4.75a.75.75 0 0 1 1.142-.638l11.5 7.25a.75.75 0 0 1 0 1.276l-11.5 7.25A.75.75 0 0 1 6 19.25V4.75z" />
             </svg>
-          </div>
+          </button>
           <h3 className="text-xl font-semibold mb-2">No reels yet</h3>
           <p className="text-muted-foreground text-sm max-w-xs">
             Reels from people you follow will appear here

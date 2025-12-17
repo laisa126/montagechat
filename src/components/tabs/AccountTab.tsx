@@ -5,7 +5,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { User } from '@/types/user';
-import { SettingsScreen } from '@/components/settings/SettingsScreen';
+import { useNavigation } from '@/navigation/NavigationContext';
+import { useHaptic } from '@/hooks/useHaptic';
 
 type ContentTab = 'posts' | 'saved' | 'liked';
 
@@ -24,8 +25,9 @@ interface AccountTabProps {
 }
 
 export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUser }: AccountTabProps) => {
+  const { navigate } = useNavigation();
+  const { trigger } = useHaptic();
   const [activeContentTab, setActiveContentTab] = useState<ContentTab>('posts');
-  const [showSettings, setShowSettings] = useState(false);
   const [posts, setPosts] = useState<Post[]>(() => {
     const saved = localStorage.getItem('user_posts');
     return saved ? JSON.parse(saved) : [];
@@ -77,18 +79,15 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
     }
   };
 
-  if (showSettings) {
-    return (
-      <SettingsScreen
-        onBack={() => setShowSettings(false)}
-        isDark={isDark}
-        onToggleTheme={onToggleTheme}
-        onSignOut={onSignOut}
-        user={user}
-        onUpdateUser={onUpdateUser}
-      />
-    );
-  }
+  const handleOpenSettings = () => {
+    trigger('light');
+    navigate('settings');
+  };
+
+  const handleOpenEditProfile = () => {
+    trigger('light');
+    navigate('settings');
+  };
 
   const getCurrentPosts = () => {
     switch (activeContentTab) {
@@ -134,7 +133,7 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
               variant="ghost" 
               size="icon" 
               className="h-9 w-9"
-              onClick={() => setShowSettings(true)}
+              onClick={handleOpenSettings}
             >
               <Settings className="w-5 h-5" />
             </Button>
@@ -189,7 +188,7 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
               <Button 
                 variant="secondary" 
                 className="flex-1 rounded-xl h-9"
-                onClick={() => setShowSettings(true)}
+                onClick={handleOpenEditProfile}
               >
                 Edit Profile
               </Button>
