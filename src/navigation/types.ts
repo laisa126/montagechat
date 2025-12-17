@@ -8,11 +8,14 @@ export type ScreenType =
   | 'notifications'
   | 'notification-detail'
   | 'dm-thread'
+  | 'search'
   | 'search-results'
   | 'create-post'
   | 'create-story'
   | 'settings'
-  | 'chat-list';
+  | 'chat-list'
+  | 'audio-page'
+  | 'hashtag-page';
 
 export interface NavigationState {
   scrollPosition?: number;
