@@ -159,6 +159,7 @@ const MainContent = () => {
             onLike={handleLike}
             onSave={handleSave}
             onStoryViewed={handleStoryViewed}
+            currentUserId={user?.id}
           />
         );
       case 'chat':

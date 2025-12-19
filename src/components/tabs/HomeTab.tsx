@@ -7,6 +7,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { StoryViewer } from '@/components/stories/StoryViewer';
 import { NavigableAvatar, NavigableUsername, NavigableLikeCount, NavigableComment } from '@/navigation/NavigableElements';
 import { useNavigation } from '@/navigation/NavigationContext';
+import { SuggestedUsers } from '@/components/profile/SuggestedUsers';
 import { cn } from '@/lib/utils';
 
 interface Story {
@@ -43,6 +44,7 @@ interface HomeTabProps {
   onLike: (postId: string) => void;
   onSave: (postId: string) => void;
   onStoryViewed?: (storyId: string) => void;
+  currentUserId?: string;
 }
 
 export const HomeTab = ({ 
@@ -53,7 +55,8 @@ export const HomeTab = ({
   posts,
   onLike,
   onSave,
-  onStoryViewed
+  onStoryViewed,
+  currentUserId
 }: HomeTabProps) => {
   const [hasNotification] = useState(true);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
@@ -206,6 +209,12 @@ export const HomeTab = ({
             ))}
           </div>
         </div>
+
+        {/* Suggested Users */}
+        <SuggestedUsers 
+          currentUserId={currentUserId} 
+          className="border-b border-border/30"
+        />
 
         {/* Posts */}
         <div className="pb-20">

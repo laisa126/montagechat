@@ -8,3 +8,5 @@ export * from './screens/CommentThreadScreen';
 export * from './screens/ReelViewerScreen';
 export * from './screens/SearchScreen';
 export * from './screens/FollowListScreen';
+export * from './screens/DMThreadScreen';
+export * from './screens/FollowRequestsScreen';

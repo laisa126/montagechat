@@ -7,6 +7,14 @@ interface Follow {
   timestamp: number;
 }
 
+interface FollowRequest {
+  id: string;
+  requesterId: string;
+  targetId: string;
+  timestamp: number;
+  status: 'pending' | 'approved' | 'denied';
+}
+
 interface FollowUser {
   id: string;
   username: string;
@@ -14,8 +22,32 @@ interface FollowUser {
   avatarUrl?: string;
 }
 
+interface SuggestedUser extends FollowUser {
+  mutualCount?: number;
+  mutualNames?: string[];
+  reason?: string;
+}
+
+interface PrivacySettings {
+  [userId: string]: {
+    isPrivate: boolean;
+  };
+}
+
 const FOLLOWS_KEY = 'app-follows';
 const USERS_KEY = 'app-known-users';
+const REQUESTS_KEY = 'app-follow-requests';
+const PRIVACY_KEY = 'app-privacy-settings';
+const DISMISSED_SUGGESTIONS_KEY = 'app-dismissed-suggestions';
+
+// Sample suggested users for demo
+const SAMPLE_SUGGESTED_USERS: SuggestedUser[] = [
+  { id: 'suggested-1', username: 'alex_creates', displayName: 'Alex Creates', mutualCount: 3, mutualNames: ['john_doe', 'jane_smith'], reason: 'Based on your interests' },
+  { id: 'suggested-2', username: 'travel_with_me', displayName: 'Travel Adventures', mutualCount: 5, mutualNames: ['photo_pro', 'wanderlust'], reason: 'Popular in your area' },
+  { id: 'suggested-3', username: 'food_lover_nyc', displayName: 'NYC Foodie', mutualCount: 2, mutualNames: ['chef_mike'], reason: 'Similar to accounts you follow' },
+  { id: 'suggested-4', username: 'fitness_daily', displayName: 'Fitness Daily', mutualCount: 0, reason: 'New to the app' },
+  { id: 'suggested-5', username: 'art_studio', displayName: 'Art Studio', mutualCount: 8, mutualNames: ['creative_mind', 'painter_pro'], reason: 'Popular creator' },
+];
 
 export const useFollows = (currentUserId?: string) => {
   const [follows, setFollows] = useState<Follow[]>(() => {
@@ -28,7 +60,22 @@ export const useFollows = (currentUserId?: string) => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Save to localStorage whenever follows change
+  const [followRequests, setFollowRequests] = useState<FollowRequest[]>(() => {
+    const saved = localStorage.getItem(REQUESTS_KEY);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(() => {
+    const saved = localStorage.getItem(PRIVACY_KEY);
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<string[]>(() => {
+    const saved = localStorage.getItem(DISMISSED_SUGGESTIONS_KEY);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Save to localStorage whenever state changes
   useEffect(() => {
     localStorage.setItem(FOLLOWS_KEY, JSON.stringify(follows));
   }, [follows]);
@@ -36,6 +83,18 @@ export const useFollows = (currentUserId?: string) => {
   useEffect(() => {
     localStorage.setItem(USERS_KEY, JSON.stringify(knownUsers));
   }, [knownUsers]);
+
+  useEffect(() => {
+    localStorage.setItem(REQUESTS_KEY, JSON.stringify(followRequests));
+  }, [followRequests]);
+
+  useEffect(() => {
+    localStorage.setItem(PRIVACY_KEY, JSON.stringify(privacySettings));
+  }, [privacySettings]);
+
+  useEffect(() => {
+    localStorage.setItem(DISMISSED_SUGGESTIONS_KEY, JSON.stringify(dismissedSuggestions));
+  }, [dismissedSuggestions]);
 
   // Register a user (for tracking display info)
   const registerUser = useCallback((user: FollowUser) => {
@@ -118,15 +177,160 @@ export const useFollows = (currentUserId?: string) => {
     return follows.filter(f => f.followerId === userId).length;
   }, [follows]);
 
+  // Privacy settings
+  const isPrivateAccount = useCallback((userId: string): boolean => {
+    return privacySettings[userId]?.isPrivate || false;
+  }, [privacySettings]);
+
+  const setPrivateAccount = useCallback((userId: string, isPrivate: boolean) => {
+    setPrivacySettings(prev => ({
+      ...prev,
+      [userId]: { isPrivate }
+    }));
+  }, []);
+
+  // Follow requests for private accounts
+  const sendFollowRequest = useCallback((targetUserId: string, targetUser?: FollowUser) => {
+    if (!currentUserId) return;
+    
+    const existingRequest = followRequests.find(
+      r => r.requesterId === currentUserId && r.targetId === targetUserId && r.status === 'pending'
+    );
+    
+    if (existingRequest) return;
+
+    const newRequest: FollowRequest = {
+      id: `req-${currentUserId}-${targetUserId}`,
+      requesterId: currentUserId,
+      targetId: targetUserId,
+      timestamp: Date.now(),
+      status: 'pending'
+    };
+
+    setFollowRequests(prev => [...prev, newRequest]);
+    
+    if (targetUser) {
+      registerUser(targetUser);
+    }
+  }, [currentUserId, followRequests, registerUser]);
+
+  const hasPendingRequest = useCallback((targetUserId: string): boolean => {
+    if (!currentUserId) return false;
+    return followRequests.some(
+      r => r.requesterId === currentUserId && r.targetId === targetUserId && r.status === 'pending'
+    );
+  }, [currentUserId, followRequests]);
+
+  const getFollowRequests = useCallback((): FollowUser[] => {
+    if (!currentUserId) return [];
+    
+    const pendingRequests = followRequests.filter(
+      r => r.targetId === currentUserId && r.status === 'pending'
+    );
+    
+    return pendingRequests
+      .map(r => knownUsers.find(u => u.id === r.requesterId))
+      .filter((u): u is FollowUser => u !== undefined);
+  }, [currentUserId, followRequests, knownUsers]);
+
+  const getFollowRequestCount = useCallback((): number => {
+    if (!currentUserId) return 0;
+    return followRequests.filter(
+      r => r.targetId === currentUserId && r.status === 'pending'
+    ).length;
+  }, [currentUserId, followRequests]);
+
+  const approveFollowRequest = useCallback((requesterId: string) => {
+    if (!currentUserId) return;
+    
+    setFollowRequests(prev => prev.map(r => 
+      r.requesterId === requesterId && r.targetId === currentUserId && r.status === 'pending'
+        ? { ...r, status: 'approved' as const }
+        : r
+    ));
+
+    // Create the follow relationship
+    const newFollow: Follow = {
+      id: `${requesterId}-${currentUserId}`,
+      followerId: requesterId,
+      followingId: currentUserId,
+      timestamp: Date.now()
+    };
+    
+    setFollows(prev => [...prev, newFollow]);
+  }, [currentUserId]);
+
+  const denyFollowRequest = useCallback((requesterId: string) => {
+    if (!currentUserId) return;
+    
+    setFollowRequests(prev => prev.map(r => 
+      r.requesterId === requesterId && r.targetId === currentUserId && r.status === 'pending'
+        ? { ...r, status: 'denied' as const }
+        : r
+    ));
+  }, [currentUserId]);
+
+  const cancelFollowRequest = useCallback((targetUserId: string) => {
+    if (!currentUserId) return;
+    
+    setFollowRequests(prev => prev.filter(
+      r => !(r.requesterId === currentUserId && r.targetId === targetUserId && r.status === 'pending')
+    ));
+  }, [currentUserId]);
+
+  // Suggested users
+  const getSuggestedUsers = useCallback((): SuggestedUser[] => {
+    if (!currentUserId) return [];
+    
+    // Filter out users the current user is already following and dismissed suggestions
+    return SAMPLE_SUGGESTED_USERS.filter(u => 
+      !isFollowing(u.id) && 
+      u.id !== currentUserId &&
+      !dismissedSuggestions.includes(u.id)
+    );
+  }, [currentUserId, isFollowing, dismissedSuggestions]);
+
+  const dismissSuggestedUser = useCallback((userId: string) => {
+    setDismissedSuggestions(prev => [...prev, userId]);
+  }, []);
+
+  // Enhanced toggle follow that handles private accounts
+  const toggleFollowWithPrivacy = useCallback((targetUserId: string, targetUser?: FollowUser) => {
+    if (isFollowing(targetUserId)) {
+      unfollowUser(targetUserId);
+    } else if (hasPendingRequest(targetUserId)) {
+      cancelFollowRequest(targetUserId);
+    } else if (isPrivateAccount(targetUserId)) {
+      sendFollowRequest(targetUserId, targetUser);
+    } else {
+      followUser(targetUserId, targetUser);
+    }
+  }, [isFollowing, hasPendingRequest, isPrivateAccount, unfollowUser, cancelFollowRequest, sendFollowRequest, followUser]);
+
   return {
     isFollowing,
     followUser,
     unfollowUser,
     toggleFollow,
+    toggleFollowWithPrivacy,
     getFollowers,
     getFollowing,
     getFollowerCount,
     getFollowingCount,
-    registerUser
+    registerUser,
+    // Privacy
+    isPrivateAccount,
+    setPrivateAccount,
+    // Follow requests
+    sendFollowRequest,
+    hasPendingRequest,
+    getFollowRequests,
+    getFollowRequestCount,
+    approveFollowRequest,
+    denyFollowRequest,
+    cancelFollowRequest,
+    // Suggested users
+    getSuggestedUsers,
+    dismissSuggestedUser
   };
 };

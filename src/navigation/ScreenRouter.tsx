@@ -6,6 +6,8 @@ import { CommentThreadScreen } from './screens/CommentThreadScreen';
 import { ReelViewerScreen } from './screens/ReelViewerScreen';
 import { SearchScreen } from './screens/SearchScreen';
 import { FollowListScreen } from './screens/FollowListScreen';
+import { DMThreadScreen } from './screens/DMThreadScreen';
+import { FollowRequestsScreen } from './screens/FollowRequestsScreen';
 import { NotificationsScreen } from '@/components/notifications/NotificationsScreen';
 import { PostCreationScreen } from '@/components/create/PostCreationScreen';
 import { StoryCreationScreen } from '@/components/create/StoryCreationScreen';
@@ -110,9 +112,22 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
         />
       );
 
+    case 'dm-thread':
+      return (
+        <DMThreadScreen
+          userId={params.userId as string}
+          username={params.username as string}
+          displayName={params.displayName as string}
+          avatarUrl={params.avatarUrl as string}
+        />
+      );
+
     case 'notifications':
       return (
-        <NotificationsScreen onBack={handleGoBack} />
+        <NotificationsScreen 
+          onBack={handleGoBack}
+          currentUserId={currentUserId}
+        />
       );
 
     case 'create-post':
