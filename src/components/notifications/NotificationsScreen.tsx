@@ -1,26 +1,35 @@
-import { ChevronLeft, Heart, MessageCircle, UserPlus, AtSign } from 'lucide-react';
+import { ChevronLeft, Heart, MessageCircle, UserPlus, AtSign, Send } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useNavigation } from '@/navigation/NavigationContext';
+import { useFollows } from '@/hooks/useFollows';
 import { cn } from '@/lib/utils';
 
 interface NotificationsScreenProps {
   onBack: () => void;
+  currentUserId?: string;
 }
 
 interface Notification {
   id: string;
-  type: 'like' | 'comment' | 'follow' | 'mention';
+  type: 'like' | 'comment' | 'follow' | 'mention' | 'follow_request';
+  userId: string;
   username: string;
   message: string;
   timeAgo: string;
   isRead: boolean;
 }
 
-export const NotificationsScreen = ({ onBack }: NotificationsScreenProps) => {
+export const NotificationsScreen = ({ onBack, currentUserId }: NotificationsScreenProps) => {
   const { trigger } = useHaptic();
   const { t } = useLanguage();
+  const { navigate } = useNavigation();
+  const { getFollowRequestCount } = useFollows(currentUserId);
+  
+  const followRequestCount = getFollowRequestCount();
   
   // Empty state - no demo data
   const notifications: Notification[] = [];
@@ -32,6 +41,7 @@ export const NotificationsScreen = ({ onBack }: NotificationsScreenProps) => {
       case 'comment':
         return <MessageCircle className="w-4 h-4 text-primary" />;
       case 'follow':
+      case 'follow_request':
         return <UserPlus className="w-4 h-4 text-primary" />;
       case 'mention':
         return <AtSign className="w-4 h-4 text-primary" />;
@@ -41,6 +51,36 @@ export const NotificationsScreen = ({ onBack }: NotificationsScreenProps) => {
   const handleBack = () => {
     trigger('light');
     onBack();
+  };
+
+  const handleNotificationTap = (notification: Notification) => {
+    trigger('light');
+    
+    if (notification.type === 'follow' || notification.type === 'follow_request') {
+      navigate('profile', {
+        userId: notification.userId,
+        username: notification.username,
+        displayName: notification.username
+      });
+    }
+  };
+
+  const handleFollowRequestsTap = () => {
+    trigger('light');
+    navigate('follow-list', {
+      userId: currentUserId,
+      username: 'me',
+      initialTab: 'followers'
+    });
+  };
+
+  const handleMessageTap = (userId: string, username: string) => {
+    trigger('light');
+    navigate('dm-thread', {
+      userId,
+      username,
+      displayName: username
+    });
   };
 
   return (
@@ -58,6 +98,22 @@ export const NotificationsScreen = ({ onBack }: NotificationsScreenProps) => {
       </header>
 
       <ScrollArea className="flex-1">
+        {/* Follow Requests Section */}
+        {followRequestCount > 0 && (
+          <button
+            onClick={handleFollowRequestsTap}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-muted/30 border-b border-border/50 active:bg-muted/50 transition-colors"
+          >
+            <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
+              <UserPlus className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="font-semibold text-sm">Follow Requests</p>
+              <p className="text-xs text-muted-foreground">{followRequestCount} pending</p>
+            </div>
+          </button>
+        )}
+
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -76,7 +132,7 @@ export const NotificationsScreen = ({ onBack }: NotificationsScreenProps) => {
             {notifications.map((notification) => (
               <button
                 key={notification.id}
-                onClick={() => trigger('light')}
+                onClick={() => handleNotificationTap(notification)}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 active:bg-muted/50 transition-colors",
                   !notification.isRead && "bg-muted/30"
@@ -99,6 +155,19 @@ export const NotificationsScreen = ({ onBack }: NotificationsScreenProps) => {
                   </p>
                   <p className="text-xs text-muted-foreground">{notification.timeAgo}</p>
                 </div>
+                {notification.type === 'follow' && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="rounded-xl h-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleMessageTap(notification.userId, notification.username);
+                    }}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                )}
               </button>
             ))}
           </div>

@@ -16,7 +16,8 @@ export type ScreenType =
   | 'chat-list'
   | 'audio-page'
   | 'hashtag-page'
-  | 'follow-list';
+  | 'follow-list'
+  | 'follow-requests';
 
 export interface NavigationState {
   scrollPosition?: number;
