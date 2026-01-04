@@ -46,6 +46,7 @@
     --message-incoming: 0 0% 96%;
     --online: 142 70% 45%;
     --chat-bg: 0 0% 98%;
+    --verified: 210 100% 50%;
     
     /* Shadows */
     --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.05);
@@ -95,6 +96,7 @@
     --message-incoming: 0 0% 15%;
     --online: 142 70% 45%;
     --chat-bg: 0 0% 3%;
+    --verified: 210 100% 50%;
 
     --sidebar-background: 0 0% 5%;
     --sidebar-foreground: 0 0% 96%;

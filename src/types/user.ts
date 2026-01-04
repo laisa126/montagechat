@@ -5,5 +5,6 @@ export interface User {
   email: string;
   bio: string;
   avatarUrl?: string;
+  isVerified?: boolean;
   createdAt: Date;
 }

@@ -5,6 +5,8 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { AdminPanel } from './AdminPanel';
+import type { Profile } from '@/hooks/useSupabaseAuth';
 
 type SettingsView = 
   | 'main'
@@ -30,7 +32,8 @@ type SettingsView =
   | 'likes'
   | 'mentions'
   | 'accessibility'
-  | 'sounds';
+  | 'sounds'
+  | 'admin';
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -44,6 +47,9 @@ interface SettingsScreenProps {
     bio?: string;
   };
   onUpdateUser: (updates: { displayName?: string; username?: string; bio?: string }) => void;
+  isAdmin?: boolean;
+  onVerifyUser?: (userId: string, verified: boolean) => Promise<{ error: string | null }>;
+  getAllProfiles?: () => Promise<{ data: Profile[] | null; error: string | null }>;
 }
 
 interface SettingsItemProps {
@@ -90,7 +96,7 @@ const SettingsSection = ({ title, children }: { title?: string; children: React.
   </div>
 );
 
-export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user, onUpdateUser }: SettingsScreenProps) => {
+export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user, onUpdateUser, isAdmin, onVerifyUser, getAllProfiles }: SettingsScreenProps) => {
   const [currentView, setCurrentView] = useState<SettingsView>('main');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -137,6 +143,17 @@ export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user,
       </div>
     </header>
   );
+
+  // Admin Panel Screen
+  if (currentView === 'admin' && isAdmin && onVerifyUser && getAllProfiles) {
+    return (
+      <AdminPanel
+        onBack={() => setCurrentView('main')}
+        onVerifyUser={onVerifyUser}
+        getAllProfiles={getAllProfiles}
+      />
+    );
+  }
 
   // Edit Profile Screen
   if (currentView === 'edit-profile') {
@@ -537,6 +554,12 @@ export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user,
             <SettingsItem icon={<Shield className="w-5 h-5" />} label="Security" onClick={() => setCurrentView('security')} />
             <SettingsItem icon={<User className="w-5 h-5" />} label="Account" onClick={() => setCurrentView('account')} />
           </SettingsSection>
+
+          {isAdmin && (
+            <SettingsSection title="Administration">
+              <SettingsItem icon={<Shield className="w-5 h-5 text-verified" />} label="Admin Panel" onClick={() => setCurrentView('admin')} />
+            </SettingsSection>
+          )}
 
           <SettingsSection title="Preferences">
             <SettingsItem icon={isDark ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />} label="Theme" value={isDark ? 'Dark' : 'Light'} onClick={() => setCurrentView('theme')} />

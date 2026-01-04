@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['DM Sans', 'system-ui', 'sans-serif'],
+        display: ['Libre Baskerville', 'Georgia', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -66,6 +67,7 @@ export default {
         },
         online: "hsl(var(--online))",
         "chat-bg": "hsl(var(--chat-bg))",
+        verified: "hsl(var(--verified))",
       },
       borderRadius: {
         lg: "var(--radius)",

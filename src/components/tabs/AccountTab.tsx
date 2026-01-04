@@ -8,6 +8,8 @@ import { User } from '@/types/user';
 import { useNavigation } from '@/navigation/NavigationContext';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useFollows } from '@/hooks/useFollows';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import type { Profile } from '@/hooks/useSupabaseAuth';
 
 type ContentTab = 'posts' | 'saved' | 'liked';
 
@@ -23,9 +25,12 @@ interface AccountTabProps {
   isDark: boolean;
   onToggleTheme: () => void;
   onUpdateUser: (updates: { displayName?: string; username?: string; bio?: string; avatarUrl?: string }) => void;
+  isAdmin?: boolean;
+  onVerifyUser?: (userId: string, verified: boolean) => Promise<{ error: string | null }>;
+  getAllProfiles?: () => Promise<{ data: Profile[] | null; error: string | null }>;
 }
 
-export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUser }: AccountTabProps) => {
+export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUser, isAdmin, onVerifyUser, getAllProfiles }: AccountTabProps) => {
   const { navigate } = useNavigation();
   const { trigger } = useHaptic();
   const { getFollowerCount, getFollowingCount, registerUser } = useFollows(user.id);
@@ -155,7 +160,10 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold tracking-tight">{user.username}</h1>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-xl font-bold tracking-tight">{user.username}</h1>
+            {user.isVerified && <VerifiedBadge size="md" />}
+          </div>
           <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
@@ -221,7 +229,10 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
 
             {/* Name and Bio */}
             <div className="mt-4">
-              <h2 className="font-semibold">{user.displayName}</h2>
+              <div className="flex items-center gap-1.5">
+                <h2 className="font-semibold">{user.displayName}</h2>
+                {user.isVerified && <VerifiedBadge size="sm" />}
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
                 {user.bio || 'Add a bio to tell people more about yourself'}
               </p>

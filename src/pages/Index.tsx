@@ -42,7 +42,7 @@ interface Post {
 
 const MainContent = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const { profile, signUp, signIn, signOut, updateProfile, isAuthenticated, loading } = useSupabaseAuth();
+  const { profile, signUp, signIn, signOut, updateProfile, verifyUser, getAllProfiles, isAdmin, isAuthenticated, loading } = useSupabaseAuth();
   const { isDark, toggleTheme } = useTheme();
   const { swipeOffset, isSwiping, swipeHandlers } = useSwipeNavigation(activeTab, setActiveTab);
   const { currentNode, navigate, clearHistory, setOriginTab } = useNavigation();
@@ -144,7 +144,8 @@ const MainContent = () => {
               username: profile.username,
               email: '',
               bio: profile.bio,
-              avatarUrl: profile.avatar_url || undefined
+              avatarUrl: profile.avatar_url || undefined,
+              isVerified: profile.is_verified
             } : undefined}
             onUpdateUser={(updates) => updateProfile({
               display_name: updates.displayName,
@@ -152,6 +153,9 @@ const MainContent = () => {
               bio: updates.bio,
               avatar_url: updates.avatarUrl
             })}
+            isAdmin={isAdmin}
+            onVerifyUser={verifyUser}
+            getAllProfiles={getAllProfiles}
           />
         </div>
         <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
@@ -190,8 +194,12 @@ const MainContent = () => {
               email: '',
               bio: profile.bio,
               avatarUrl: profile.avatar_url || undefined,
+              isVerified: profile.is_verified,
               createdAt: new Date(profile.created_at)
             }} 
+            isAdmin={isAdmin}
+            onVerifyUser={verifyUser}
+            getAllProfiles={getAllProfiles}
             onSignOut={signOut} 
             isDark={isDark} 
             onToggleTheme={toggleTheme}

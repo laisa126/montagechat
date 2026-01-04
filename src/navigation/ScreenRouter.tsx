@@ -27,8 +27,12 @@ interface ScreenRouterProps {
     email: string;
     bio?: string;
     avatarUrl?: string;
+    isVerified?: boolean;
   };
   onUpdateUser?: (updates: { displayName?: string; username?: string; bio?: string; avatarUrl?: string }) => void;
+  isAdmin?: boolean;
+  onVerifyUser?: (userId: string, verified: boolean) => Promise<{ error: string | null }>;
+  getAllProfiles?: () => Promise<{ data: any[] | null; error: string | null }>;
 }
 
 export const ScreenRouter: React.FC<ScreenRouterProps> = ({
@@ -39,7 +43,10 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
   onToggleTheme,
   onSignOut,
   user,
-  onUpdateUser
+  onUpdateUser,
+  isAdmin,
+  onVerifyUser,
+  getAllProfiles
 }) => {
   const { currentNode, goBack } = useNavigation();
 
@@ -162,6 +169,9 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
             onSignOut={onSignOut}
             user={user}
             onUpdateUser={onUpdateUser}
+            isAdmin={isAdmin}
+            onVerifyUser={onVerifyUser}
+            getAllProfiles={getAllProfiles}
           />
         );
       }

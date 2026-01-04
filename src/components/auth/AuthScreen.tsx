@@ -9,13 +9,14 @@ const passwordSchema = z.string().min(6, { message: "Password must be at least 6
 const usernameSchema = z.string().trim().min(3, { message: "Username must be at least 3 characters" }).max(30, { message: "Username must be less than 30 characters" }).regex(/^[a-zA-Z0-9_]+$/, { message: "Username can only contain letters, numbers, and underscores" });
 
 interface AuthScreenProps {
-  onLogin: (email: string, password: string) => Promise<{ error: string | null }>;
+  onLogin: (identifier: string, password: string) => Promise<{ error: string | null }>;
   onSignUp: (email: string, password: string, username: string, displayName: string) => Promise<{ error: string | null }>;
   isLoading?: boolean;
 }
 
 export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenProps) => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [identifier, setIdentifier] = useState(''); // Can be email or username
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -26,12 +27,18 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
 
   const validateForm = (): boolean => {
     try {
-      emailSchema.parse(email);
       passwordSchema.parse(password);
       if (mode === 'signup') {
+        emailSchema.parse(email);
         usernameSchema.parse(username);
         if (!displayName.trim()) {
           setError('Please enter your name');
+          return false;
+        }
+      } else {
+        // For login, identifier can be email or username
+        if (!identifier.trim()) {
+          setError('Please enter your email or username');
           return false;
         }
       }
@@ -54,7 +61,7 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
     
     try {
       if (mode === 'login') {
-        const result = await onLogin(email, password);
+        const result = await onLogin(identifier, password);
         if (result.error) {
           setError(result.error);
         }
@@ -78,8 +85,8 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-10">
         {/* Logo */}
-        <div className="mb-10">
-          <h1 className="text-5xl font-bold tracking-tight bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent font-serif italic">
+        <div className="mb-12">
+          <h1 className="text-5xl font-display italic font-normal tracking-tight bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 bg-clip-text text-transparent">
             Montage
           </h1>
         </div>
@@ -93,7 +100,7 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
                 placeholder="Full Name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="h-12 rounded-sm bg-secondary/50 border border-border/50 px-3 text-sm placeholder:text-muted-foreground/60"
+                className="h-12 rounded-xl bg-secondary/50 border border-border/50 px-4 text-sm placeholder:text-muted-foreground/60"
                 autoComplete="name"
                 disabled={isSubmitting}
               />
@@ -102,22 +109,33 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
                 placeholder="Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
-                className="h-12 rounded-sm bg-secondary/50 border border-border/50 px-3 text-sm placeholder:text-muted-foreground/60"
+                className="h-12 rounded-xl bg-secondary/50 border border-border/50 px-4 text-sm placeholder:text-muted-foreground/60"
                 autoComplete="username"
+                disabled={isSubmitting}
+              />
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-12 rounded-xl bg-secondary/50 border border-border/50 px-4 text-sm placeholder:text-muted-foreground/60"
+                autoComplete="email"
                 disabled={isSubmitting}
               />
             </>
           )}
-          
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="h-12 rounded-sm bg-secondary/50 border border-border/50 px-3 text-sm placeholder:text-muted-foreground/60"
-            autoComplete="email"
-            disabled={isSubmitting}
-          />
+
+          {mode === 'login' && (
+            <Input
+              type="text"
+              placeholder="Username or Email"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              className="h-12 rounded-xl bg-secondary/50 border border-border/50 px-4 text-sm placeholder:text-muted-foreground/60"
+              autoComplete="username"
+              disabled={isSubmitting}
+            />
+          )}
           
           <div className="relative">
             <Input
@@ -125,14 +143,14 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 rounded-sm bg-secondary/50 border border-border/50 px-3 pr-12 text-sm placeholder:text-muted-foreground/60"
+              className="h-12 rounded-xl bg-secondary/50 border border-border/50 px-4 pr-12 text-sm placeholder:text-muted-foreground/60"
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               disabled={isSubmitting}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -144,8 +162,8 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
 
           <Button
             type="submit"
-            className="w-full h-11 rounded-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-            disabled={isSubmitting || !email || !password || (mode === 'signup' && (!username || !displayName))}
+            className="w-full h-12 rounded-xl font-semibold bg-gradient-to-r from-rose-500 via-fuchsia-500 to-indigo-500 hover:opacity-90 text-white border-0"
+            disabled={isSubmitting || (!identifier && mode === 'login') || !password || (mode === 'signup' && (!username || !displayName || !email))}
           >
             {isSubmitting ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -158,9 +176,9 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
         </form>
 
         {/* Divider */}
-        <div className="flex items-center w-full max-w-sm my-6">
+        <div className="flex items-center w-full max-w-sm my-8">
           <div className="flex-1 h-px bg-border" />
-          <span className="px-4 text-xs text-muted-foreground font-semibold">OR</span>
+          <span className="px-4 text-xs text-muted-foreground font-medium">OR</span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
@@ -170,7 +188,7 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
             setMode(mode === 'login' ? 'signup' : 'login');
             setError('');
           }}
-          className="text-sm text-primary font-semibold"
+          className="text-sm text-primary font-semibold hover:opacity-80 transition-opacity"
           disabled={isSubmitting}
         >
           {mode === 'login' ? 'Create new account' : 'Already have an account? Log in'}
@@ -188,7 +206,7 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
                   setMode('signup');
                   setError('');
                 }}
-                className="text-primary font-semibold"
+                className="text-primary font-semibold hover:opacity-80 transition-opacity"
                 disabled={isSubmitting}
               >
                 Sign up
@@ -202,7 +220,7 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
                   setMode('login');
                   setError('');
                 }}
-                className="text-primary font-semibold"
+                className="text-primary font-semibold hover:opacity-80 transition-opacity"
                 disabled={isSubmitting}
               >
                 Log in
