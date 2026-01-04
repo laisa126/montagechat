@@ -4,15 +4,16 @@ import { HomeTab } from '@/components/tabs/HomeTab';
 import { ChatTab } from '@/components/tabs/ChatTab';
 import { ReelsTab } from '@/components/tabs/ReelsTab';
 import { AccountTab } from '@/components/tabs/AccountTab';
-import { SignUpScreen } from '@/components/auth/SignUpScreen';
+import { AuthScreen } from '@/components/auth/AuthScreen';
 import { Toaster } from '@/components/ui/sonner';
-import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
 import { ScreenRouter } from '@/navigation/ScreenRouter';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 interface Story {
   id: string;
@@ -41,7 +42,7 @@ interface Post {
 
 const MainContent = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const { user, signUp, updateUser, signOut, isAuthenticated } = useAuth();
+  const { profile, signUp, signIn, signOut, updateProfile, isAuthenticated, loading } = useSupabaseAuth();
   const { isDark, toggleTheme } = useTheme();
   const { swipeOffset, isSwiping, swipeHandlers } = useSwipeNavigation(activeTab, setActiveTab);
   const { currentNode, navigate, clearHistory, setOriginTab } = useNavigation();
@@ -49,15 +50,23 @@ const MainContent = () => {
   const [stories, setStories] = useLocalStorage<Story[]>('app-stories', []);
   const [posts, setPosts] = useLocalStorage<Post[]>('app-posts', []);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
-    return <SignUpScreen onSignUp={signUp} />;
+    return <AuthScreen onLogin={signIn} onSignUp={signUp} />;
   }
 
   const handleCreatePost = (post: { image?: string; caption: string }) => {
     const newPost: Post = {
       id: Date.now().toString(),
-      username: user?.username || 'user',
-      userId: user?.id || 'current_user',
+      username: profile?.username || 'user',
+      userId: profile?.user_id || 'current_user',
       content: post.caption,
       image: post.image,
       likes: 0,
@@ -72,8 +81,8 @@ const MainContent = () => {
   const handleCreateStory = (story: { image: string; text?: string; music?: { name: string; artist: string } }) => {
     const newStory: Story = {
       id: Date.now().toString(),
-      name: user?.displayName || 'Your Story',
-      image: user?.avatarUrl,
+      name: profile?.display_name || 'Your Story',
+      image: profile?.avatar_url || undefined,
       storyImage: story.image,
       text: story.text,
       music: story.music,
@@ -129,15 +138,20 @@ const MainContent = () => {
             isDark={isDark}
             onToggleTheme={toggleTheme}
             onSignOut={signOut}
-            user={user ? {
-              id: user.id,
-              displayName: user.displayName,
-              username: user.username,
-              email: user.email,
-              bio: user.bio,
-              avatarUrl: user.avatarUrl
+            user={profile ? {
+              id: profile.user_id,
+              displayName: profile.display_name,
+              username: profile.username,
+              email: '',
+              bio: profile.bio,
+              avatarUrl: profile.avatar_url || undefined
             } : undefined}
-            onUpdateUser={updateUser}
+            onUpdateUser={(updates) => updateProfile({
+              display_name: updates.displayName,
+              username: updates.username,
+              bio: updates.bio,
+              avatar_url: updates.avatarUrl
+            })}
           />
         </div>
         <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
@@ -159,7 +173,7 @@ const MainContent = () => {
             onLike={handleLike}
             onSave={handleSave}
             onStoryViewed={handleStoryViewed}
-            currentUserId={user?.id}
+            currentUserId={profile?.user_id}
           />
         );
       case 'chat':
@@ -167,15 +181,28 @@ const MainContent = () => {
       case 'reels':
         return <ReelsTab />;
       case 'account':
-        return (
+        return profile ? (
           <AccountTab 
-            user={user!} 
+            user={{
+              id: profile.user_id,
+              displayName: profile.display_name,
+              username: profile.username,
+              email: '',
+              bio: profile.bio,
+              avatarUrl: profile.avatar_url || undefined,
+              createdAt: new Date(profile.created_at)
+            }} 
             onSignOut={signOut} 
             isDark={isDark} 
             onToggleTheme={toggleTheme}
-            onUpdateUser={updateUser}
+            onUpdateUser={(updates) => updateProfile({
+              display_name: updates.displayName,
+              username: updates.username,
+              bio: updates.bio,
+              avatar_url: updates.avatarUrl
+            })}
           />
-        );
+        ) : null;
       default:
         return (
           <HomeTab 
