@@ -1,24 +1,32 @@
-import { useState } from 'react';
-import { Search, Edit, ChevronLeft, Send, Phone, Video, Info } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useState, useEffect } from 'react';
+import { Search, Edit } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { Chat, Message } from '@/types/chat';
+import { useNavigation } from '@/navigation/NavigationContext';
+import { useMessages, Conversation } from '@/hooks/useMessages';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { format, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useHaptic } from '@/hooks/useHaptic';
 
-export const ChatTab = () => {
-  const [chats, setChats] = useLocalStorage<Chat[]>('telegram-chats', []);
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+interface ChatTabProps {
+  currentUserId?: string;
+}
+
+export const ChatTab = ({ currentUserId }: ChatTabProps) => {
+  const { navigate } = useNavigation();
+  const { trigger } = useHaptic();
+  const { conversations, loading } = useMessages(currentUserId);
   const [searchQuery, setSearchQuery] = useState('');
-  const [messageInput, setMessageInput] = useState('');
-  const [isCreatingChat, setIsCreatingChat] = useState(false);
-  const [newChatName, setNewChatName] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const filteredChats = chats.filter((chat) =>
-    chat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = conversations.filter((conv) =>
+    conv.partnerDisplayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.partnerUsername.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatTime = (date: Date) => {
@@ -28,203 +36,61 @@ export const ChatTab = () => {
     return format(d, 'dd/MM/yy');
   };
 
-  const formatMessageTime = (date: Date) => format(new Date(date), 'HH:mm');
-
-  const handleCreateChat = () => {
-    if (!newChatName.trim()) return;
-    
-    const newChat: Chat = {
-      id: crypto.randomUUID(),
-      name: newChatName.trim(),
-      messages: [],
-      isOnline: Math.random() > 0.5,
-    };
-    
-    setChats(prev => [newChat, ...prev]);
-    setNewChatName('');
-    setIsCreatingChat(false);
-    setSelectedChat(newChat);
-  };
-
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedChat) return;
-
-    const newMessage: Message = {
-      id: crypto.randomUUID(),
-      content: messageInput.trim(),
-      timestamp: new Date(),
-      isOutgoing: true,
-    };
-
-    setChats(prev =>
-      prev.map(chat => {
-        if (chat.id === selectedChat.id) {
-          const updated = {
-            ...chat,
-            messages: [...chat.messages, newMessage],
-            lastMessage: messageInput.trim(),
-            lastMessageTime: new Date(),
-          };
-          setSelectedChat(updated);
-          return updated;
-        }
-        return chat;
-      })
-    );
-
-    setMessageInput('');
-  };
-
-  const groupMessagesByDate = (messages: Message[]) => {
-    const groups: { date: string; messages: Message[] }[] = [];
-    
-    messages.forEach((message) => {
-      const date = new Date(message.timestamp);
-      let dateLabel: string;
-      
-      if (isToday(date)) dateLabel = 'Today';
-      else if (isYesterday(date)) dateLabel = 'Yesterday';
-      else dateLabel = format(date, 'MMMM d, yyyy');
-
-      const existingGroup = groups.find((g) => g.date === dateLabel);
-      if (existingGroup) {
-        existingGroup.messages.push(message);
-      } else {
-        groups.push({ date: dateLabel, messages: [message] });
+  // Search for users to start new conversation
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (searchQuery.length < 2) {
+        setSearchResults([]);
+        return;
       }
-    });
 
-    return groups;
+      setIsSearching(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('user_id, username, display_name, avatar_url, is_verified')
+          .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%`)
+          .neq('user_id', currentUserId)
+          .limit(10);
+
+        if (!error && data) {
+          setSearchResults(data);
+        }
+      } catch (error) {
+        console.error('Error searching users:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const debounce = setTimeout(searchUsers, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery, currentUserId]);
+
+  const handleOpenConversation = (conv: Conversation) => {
+    trigger('light');
+    navigate('dm-thread', {
+      userId: conv.partnerId,
+      username: conv.partnerUsername,
+      displayName: conv.partnerDisplayName,
+      avatarUrl: conv.partnerAvatarUrl,
+      isVerified: conv.partnerIsVerified
+    });
   };
 
-  // Chat Detail View
-  if (selectedChat) {
-    const messageGroups = groupMessagesByDate(selectedChat.messages);
+  const handleStartNewConversation = (user: any) => {
+    trigger('light');
+    navigate('dm-thread', {
+      userId: user.user_id,
+      username: user.username,
+      displayName: user.display_name,
+      avatarUrl: user.avatar_url,
+      isVerified: user.is_verified
+    });
+    setSearchQuery('');
+    setSearchResults([]);
+  };
 
-    return (
-      <div className="flex flex-col h-full bg-background">
-        {/* Chat Header */}
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-2 py-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSelectedChat(null)}
-                className="h-9 w-9"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </Button>
-              <Avatar className="w-9 h-9">
-                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                  {selectedChat.name[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="font-semibold text-sm">{selectedChat.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {selectedChat.isOnline ? 'Active now' : 'Offline'}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Phone className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Video className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Info className="w-5 h-5" />
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        {/* Messages */}
-        <ScrollArea className="flex-1 px-3">
-          <div className="py-4 space-y-4">
-            {selectedChat.messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <Avatar className="w-20 h-20 mb-4">
-                  <AvatarFallback className="bg-primary/10 text-primary text-2xl font-semibold">
-                    {selectedChat.name[0].toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <h3 className="font-semibold text-lg">{selectedChat.name}</h3>
-                <p className="text-muted-foreground text-sm mt-1">
-                  Start a conversation
-                </p>
-              </div>
-            ) : (
-              messageGroups.map((group) => (
-                <div key={group.date} className="space-y-2">
-                  <div className="flex justify-center">
-                    <span className="text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full">
-                      {group.date}
-                    </span>
-                  </div>
-                  {group.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        "flex",
-                        message.isOutgoing ? "justify-end" : "justify-start"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "max-w-[75%] px-4 py-2 rounded-2xl",
-                          message.isOutgoing
-                            ? "bg-primary text-primary-foreground rounded-br-md"
-                            : "bg-muted rounded-bl-md"
-                        )}
-                      >
-                        <p className="text-sm break-words">{message.content}</p>
-                        <p
-                          className={cn(
-                            "text-[10px] mt-1",
-                            message.isOutgoing
-                              ? "text-primary-foreground/70"
-                              : "text-muted-foreground"
-                          )}
-                        >
-                          {formatMessageTime(message.timestamp)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
-
-        {/* Message Input */}
-        <div className="sticky bottom-16 bg-background border-t border-border/50 px-3 py-2 safe-area-bottom">
-          <div className="flex items-center gap-2">
-            <Input
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-              placeholder="Message..."
-              className="flex-1 rounded-full bg-muted border-0 focus-visible:ring-1"
-            />
-            <Button
-              size="icon"
-              onClick={handleSendMessage}
-              disabled={!messageInput.trim()}
-              className="rounded-full h-10 w-10 shrink-0"
-            >
-              <Send className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Chat List View
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -234,8 +100,8 @@ export const ChatTab = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsCreatingChat(true)}
             className="h-9 w-9"
+            onClick={() => {}}
           >
             <Edit className="w-5 h-5" />
           </Button>
@@ -247,79 +113,98 @@ export const ChatTab = () => {
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search"
+            placeholder="Search users..."
             className="pl-9 rounded-xl bg-muted border-0 focus-visible:ring-1"
           />
         </div>
       </header>
 
-      {/* New Chat Input */}
-      {isCreatingChat && (
-        <div className="px-4 py-3 border-b border-border/50 bg-muted/30">
-          <div className="flex items-center gap-2">
-            <Input
-              value={newChatName}
-              onChange={(e) => setNewChatName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateChat()}
-              placeholder="Enter name..."
-              className="flex-1 rounded-xl"
-              autoFocus
-            />
-            <Button size="sm" onClick={handleCreateChat} disabled={!newChatName.trim()}>
-              Create
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => {
-              setIsCreatingChat(false);
-              setNewChatName('');
-            }}>
-              Cancel
-            </Button>
-          </div>
+      {/* Search Results */}
+      {searchQuery.length >= 2 && searchResults.length > 0 && (
+        <div className="border-b border-border/50 bg-muted/30 px-4 py-2">
+          <p className="text-xs text-muted-foreground mb-2">Search Results</p>
+          {searchResults.map((user) => (
+            <button
+              key={user.user_id}
+              onClick={() => handleStartNewConversation(user)}
+              className="w-full flex items-center gap-3 py-2 hover:bg-muted/50 rounded-lg transition-colors"
+            >
+              <Avatar className="w-10 h-10">
+                {user.avatar_url && <AvatarImage src={user.avatar_url} />}
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                  {user.display_name[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 text-left">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-sm">{user.display_name}</span>
+                  {user.is_verified && <VerifiedBadge size="sm" />}
+                </div>
+                <span className="text-xs text-muted-foreground">@{user.username}</span>
+              </div>
+            </button>
+          ))}
         </div>
       )}
 
       {/* Chat List */}
       <ScrollArea className="flex-1">
         <div className="pb-20">
-          {filteredChats.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
               <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
                 <Edit className="w-10 h-10 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold mb-1">No messages yet</h3>
               <p className="text-muted-foreground text-sm">
-                Tap the edit icon to start a new conversation
+                Search for users above to start a conversation
               </p>
             </div>
           ) : (
-            filteredChats.map((chat) => (
+            filteredConversations.map((conv) => (
               <button
-                key={chat.id}
-                onClick={() => setSelectedChat(chat)}
+                key={conv.partnerId}
+                onClick={() => handleOpenConversation(conv)}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 active:bg-muted transition-colors"
               >
                 <div className="relative">
                   <Avatar className="w-14 h-14">
+                    {conv.partnerAvatarUrl && <AvatarImage src={conv.partnerAvatarUrl} />}
                     <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
-                      {chat.name[0].toUpperCase()}
+                      {conv.partnerDisplayName[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  {chat.isOnline && (
+                  {conv.isOnline && (
                     <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-background rounded-full" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className="font-semibold truncate">{chat.name}</span>
-                    {chat.lastMessageTime && (
-                      <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                        {formatTime(chat.lastMessageTime)}
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold truncate">{conv.partnerDisplayName}</span>
+                      {conv.partnerIsVerified && <VerifiedBadge size="sm" />}
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                      {formatTime(conv.lastMessageTime)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className={cn(
+                      "text-sm truncate",
+                      conv.unreadCount > 0 ? "font-semibold text-foreground" : "text-muted-foreground"
+                    )}>
+                      {conv.lastMessage}
+                    </p>
+                    {conv.unreadCount > 0 && (
+                      <span className="ml-2 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                        {conv.unreadCount}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {chat.lastMessage || 'No messages yet'}
-                  </p>
                 </div>
               </button>
             ))

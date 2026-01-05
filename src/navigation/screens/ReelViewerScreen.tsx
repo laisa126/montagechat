@@ -28,34 +28,8 @@ export const ReelViewerScreen = ({ reelId, initialIndex = 0 }: ReelViewerScreenP
   const { navigate, goBack } = useNavigation();
   const { trigger } = useHaptic();
   
-  // Sample reels data (in a real app, this would come from props or context)
-  const [reels, setReels] = useState<Reel[]>([
-    {
-      id: '1',
-      username: 'creator1',
-      userId: 'user1',
-      caption: 'Amazing sunset vibes 🌅 #sunset #vibes #nature',
-      audioName: 'Original Audio - creator1',
-      likes: 1234,
-      comments: 89,
-      isLiked: false,
-      isSaved: false,
-      hashtags: ['sunset', 'vibes', 'nature']
-    },
-    {
-      id: '2',
-      username: 'traveler',
-      userId: 'user2',
-      caption: 'Exploring new places ✈️ #travel #adventure',
-      audioName: 'Wanderlust - Travel Beats',
-      audioId: 'audio1',
-      likes: 5678,
-      comments: 234,
-      isLiked: true,
-      isSaved: false,
-      hashtags: ['travel', 'adventure']
-    }
-  ]);
+  // Empty reels - would come from database in production
+  const [reels, setReels] = useState<Reel[]>([]);
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isMuted, setIsMuted] = useState(false);

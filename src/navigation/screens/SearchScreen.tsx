@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Search, ChevronLeft, X, User, Hash, Music2, Image, TrendingUp } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNavigation } from '../NavigationContext';
 import { useHaptic } from '@/hooks/useHaptic';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 type SearchTab = 'top' | 'accounts' | 'tags' | 'audio' | 'places';
@@ -15,25 +18,26 @@ interface SearchResult {
   title: string;
   subtitle?: string;
   imageUrl?: string;
+  avatarUrl?: string;
+  isVerified?: boolean;
   count?: number;
 }
 
 interface SearchScreenProps {
   initialQuery?: string;
   initialType?: string;
+  currentUserId?: string;
 }
 
-export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenProps) => {
+export const SearchScreen = ({ initialQuery = '', initialType, currentUserId }: SearchScreenProps) => {
   const { navigate, goBack } = useNavigation();
   const { trigger } = useHaptic();
+  const { history, addToHistory, removeFromHistory, clearHistory: clearSearchHistory } = useSearchHistory(currentUserId);
   
   const [query, setQuery] = useState(initialQuery);
   const [activeTab, setActiveTab] = useState<SearchTab>('top');
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [recentSearches, setRecentSearches] = useState<SearchResult[]>(() => {
-    const saved = localStorage.getItem('recent-searches');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [loading, setLoading] = useState(false);
 
   const tabs: { id: SearchTab; label: string }[] = [
     { id: 'top', label: 'Top' },
@@ -43,34 +47,73 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
     { id: 'places', label: 'Places' },
   ];
 
-  // Sample search results based on query
+  // Search users from database
   useEffect(() => {
-    if (query.length > 0) {
-      // Simulate search results
-      const mockResults: SearchResult[] = [
-        { id: '1', type: 'account', title: query + '_user', subtitle: `${query} User • 1.2K followers` },
-        { id: '2', type: 'account', title: query + '_official', subtitle: `Official ${query} • 50K followers` },
-        { id: '3', type: 'hashtag', title: `#${query}`, subtitle: '125K posts', count: 125000 },
-        { id: '4', type: 'hashtag', title: `#${query}life`, subtitle: '45K posts', count: 45000 },
-        { id: '5', type: 'audio', title: `${query} - Original Sound`, subtitle: 'Used in 500 reels' },
-        { id: '6', type: 'audio', title: `${query} Remix`, subtitle: 'Used in 1.2K reels' },
-        { id: '7', type: 'post', title: 'Featured Post', subtitle: `About ${query}` },
-      ];
+    const searchUsers = async () => {
+      if (query.length < 2) {
+        setResults([]);
+        return;
+      }
 
-      // Filter based on active tab
-      const filtered = activeTab === 'top' 
-        ? mockResults 
-        : mockResults.filter(r => {
-            if (activeTab === 'accounts') return r.type === 'account';
-            if (activeTab === 'tags') return r.type === 'hashtag';
-            if (activeTab === 'audio') return r.type === 'audio';
-            return true;
+      setLoading(true);
+      try {
+        // Search for users
+        const { data: users, error } = await supabase
+          .from('profiles')
+          .select('user_id, username, display_name, avatar_url, is_verified')
+          .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
+          .limit(20);
+
+        if (error) throw error;
+
+        const searchResults: SearchResult[] = [];
+
+        // Add user results
+        if (users) {
+          users.forEach(user => {
+            searchResults.push({
+              id: user.user_id,
+              type: 'account',
+              title: user.username,
+              subtitle: `${user.display_name}`,
+              avatarUrl: user.avatar_url || undefined,
+              isVerified: user.is_verified || false
+            });
           });
+        }
 
-      setResults(filtered);
-    } else {
-      setResults([]);
-    }
+        // Add hashtag results (synthetic for now)
+        if (activeTab === 'top' || activeTab === 'tags') {
+          searchResults.push({
+            id: `hashtag-${query}`,
+            type: 'hashtag',
+            title: `#${query}`,
+            subtitle: 'Search hashtag',
+            count: 0
+          });
+        }
+
+        // Filter based on active tab
+        const filtered = activeTab === 'top' 
+          ? searchResults 
+          : searchResults.filter(r => {
+              if (activeTab === 'accounts') return r.type === 'account';
+              if (activeTab === 'tags') return r.type === 'hashtag';
+              if (activeTab === 'audio') return r.type === 'audio';
+              return true;
+            });
+
+        setResults(filtered);
+      } catch (error) {
+        console.error('Error searching:', error);
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(searchUsers, 300);
+    return () => clearTimeout(debounce);
   }, [query, activeTab]);
 
   const handleBack = () => {
@@ -82,13 +125,17 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
     setQuery('');
   };
 
-  const handleResultTap = (result: SearchResult) => {
+  const handleResultTap = async (result: SearchResult) => {
     trigger('light');
     
-    // Add to recent searches
-    const updated = [result, ...recentSearches.filter(r => r.id !== result.id)].slice(0, 10);
-    setRecentSearches(updated);
-    localStorage.setItem('recent-searches', JSON.stringify(updated));
+    // Add to search history
+    await addToHistory({
+      search_type: result.type,
+      search_value: query,
+      result_id: result.id,
+      result_title: result.title,
+      result_subtitle: result.subtitle
+    });
 
     // Navigate based on result type
     switch (result.type) {
@@ -96,7 +143,9 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
         navigate('profile', {
           userId: result.id,
           username: result.title,
-          displayName: result.title
+          displayName: result.subtitle || result.title,
+          avatarUrl: result.avatarUrl,
+          isVerified: result.isVerified
         });
         break;
       case 'hashtag':
@@ -119,17 +168,37 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
     }
   };
 
-  const handleRemoveRecent = (id: string) => {
+  const handleHistoryTap = (item: typeof history[0]) => {
     trigger('light');
-    const updated = recentSearches.filter(r => r.id !== id);
-    setRecentSearches(updated);
-    localStorage.setItem('recent-searches', JSON.stringify(updated));
+    
+    switch (item.search_type) {
+      case 'account':
+        navigate('profile', {
+          userId: item.result_id,
+          username: item.result_title,
+          displayName: item.result_subtitle || item.result_title
+        });
+        break;
+      case 'hashtag':
+        navigate('search-results', {
+          query: item.result_title,
+          type: 'hashtag'
+        });
+        break;
+      default:
+        setQuery(item.search_value);
+        break;
+    }
   };
 
-  const handleClearAllRecent = () => {
+  const handleRemoveHistoryItem = async (id: string) => {
+    trigger('light');
+    await removeFromHistory(id);
+  };
+
+  const handleClearAllHistory = async () => {
     trigger('medium');
-    setRecentSearches([]);
-    localStorage.removeItem('recent-searches');
+    await clearSearchHistory();
   };
 
   const getResultIcon = (type: SearchResult['type']) => {
@@ -158,7 +227,7 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search"
+              placeholder="Search users..."
               className="pl-9 pr-9 rounded-xl bg-muted border-0 h-10"
               autoFocus
             />
@@ -199,8 +268,15 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
 
       <ScrollArea className="flex-1">
         <div className="pb-20">
+          {/* Loading State */}
+          {loading && query.length >= 2 && (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+
           {/* Search Results */}
-          {query && results.length > 0 && (
+          {!loading && query && results.length > 0 && (
             <div className="divide-y divide-border">
               {results.map(result => (
                 <button
@@ -214,6 +290,7 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
                   )}>
                     {result.type === 'account' ? (
                       <Avatar className="w-12 h-12">
+                        {result.avatarUrl && <AvatarImage src={result.avatarUrl} />}
                         <AvatarFallback className="bg-muted text-muted-foreground">
                           {result.title[0].toUpperCase()}
                         </AvatarFallback>
@@ -223,7 +300,10 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
                     )}
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-semibold">{result.title}</p>
+                    <div className="flex items-center gap-1">
+                      <p className="font-semibold">{result.title}</p>
+                      {result.isVerified && <VerifiedBadge size="sm" />}
+                    </div>
                     {result.subtitle && (
                       <p className="text-sm text-muted-foreground">{result.subtitle}</p>
                     )}
@@ -233,48 +313,48 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
             </div>
           )}
 
-          {/* Recent Searches */}
-          {!query && recentSearches.length > 0 && (
+          {/* Recent Searches from Database */}
+          {!query && history.length > 0 && (
             <div>
               <div className="flex items-center justify-between px-4 py-3">
                 <h3 className="font-semibold">Recent</h3>
                 <button 
-                  onClick={handleClearAllRecent}
+                  onClick={handleClearAllHistory}
                   className="text-primary text-sm font-medium active:opacity-70"
                 >
                   Clear all
                 </button>
               </div>
               <div className="divide-y divide-border">
-                {recentSearches.map(result => (
+                {history.map(item => (
                   <div
-                    key={result.id}
+                    key={item.id}
                     className="flex items-center gap-3 px-4 py-3"
                   >
                     <button
-                      onClick={() => handleResultTap(result)}
+                      onClick={() => handleHistoryTap(item)}
                       className="flex-1 flex items-center gap-3 active:opacity-70"
                     >
                       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                        {result.type === 'account' ? (
+                        {item.search_type === 'account' ? (
                           <Avatar className="w-12 h-12">
                             <AvatarFallback className="bg-muted text-muted-foreground">
-                              {result.title[0].toUpperCase()}
+                              {item.result_title[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                         ) : (
-                          getResultIcon(result.type)
+                          getResultIcon(item.search_type)
                         )}
                       </div>
                       <div className="text-left">
-                        <p className="font-semibold">{result.title}</p>
-                        {result.subtitle && (
-                          <p className="text-sm text-muted-foreground">{result.subtitle}</p>
+                        <p className="font-semibold">{item.result_title}</p>
+                        {item.result_subtitle && (
+                          <p className="text-sm text-muted-foreground">{item.result_subtitle}</p>
                         )}
                       </div>
                     </button>
                     <button 
-                      onClick={() => handleRemoveRecent(result.id)}
+                      onClick={() => handleRemoveHistoryItem(item.id)}
                       className="p-2 active:scale-90 transition-transform"
                     >
                       <X className="w-4 h-4 text-muted-foreground" />
@@ -286,7 +366,7 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
           )}
 
           {/* Trending Section */}
-          {!query && (
+          {!query && history.length === 0 && (
             <div className="mt-4">
               <div className="flex items-center gap-2 px-4 py-3">
                 <TrendingUp className="w-5 h-5 text-primary" />
@@ -316,7 +396,7 @@ export const SearchScreen = ({ initialQuery = '', initialType }: SearchScreenPro
           )}
 
           {/* Empty State */}
-          {query && results.length === 0 && (
+          {!loading && query && results.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
               <Search className="w-16 h-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-1">No results found</h3>

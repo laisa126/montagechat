@@ -27,26 +27,7 @@ export const CommentThreadScreen: React.FC<CommentThreadScreenProps> = ({ postId
   const { goBack, navigate } = useNavigation();
   const { trigger } = useHaptic();
   
-  const [comments, setComments] = useState<Comment[]>([
-    {
-      id: '1',
-      userId: 'user1',
-      username: 'johndoe',
-      text: 'Amazing post! 🔥',
-      likes: 12,
-      isLiked: false,
-      timeAgo: '2h'
-    },
-    {
-      id: '2',
-      userId: 'user2',
-      username: 'janedoe',
-      text: 'Love this content!',
-      likes: 5,
-      isLiked: true,
-      timeAgo: '1h'
-    }
-  ]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
 
   const handleBack = () => {

@@ -8,6 +8,9 @@ import { NavigablePost } from '../NavigableElements';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useFollows } from '@/hooks/useFollows';
+import { usePresenceStatus } from '@/hooks/useUserPresence';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 type ContentTab = 'posts' | 'reels' | 'saved';
@@ -17,6 +20,7 @@ interface ProfileScreenProps {
   username: string;
   displayName: string;
   avatarUrl?: string;
+  isVerified?: boolean;
   currentUserId?: string;
 }
 
@@ -28,9 +32,10 @@ interface Post {
 
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   userId,
-  username,
-  displayName,
-  avatarUrl,
+  username: initialUsername,
+  displayName: initialDisplayName,
+  avatarUrl: initialAvatarUrl,
+  isVerified: initialIsVerified,
   currentUserId
 }) => {
   const { goBack, navigate, updateState, currentNode } = useNavigation();
@@ -42,10 +47,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     getFollowingCount,
     registerUser 
   } = useFollows(currentUserId);
+  const { isOnline } = usePresenceStatus(userId);
   
   const [activeTab, setActiveTab] = useState<ContentTab>(
     (currentNode?.state?.selectedTab as ContentTab) || 'posts'
   );
+  
+  // Profile data state - fetch from database
+  const [profileData, setProfileData] = useState({
+    username: initialUsername,
+    displayName: initialDisplayName,
+    avatarUrl: initialAvatarUrl,
+    bio: '',
+    isVerified: initialIsVerified || false
+  });
   
   const [userPosts] = useLocalStorage<Post[]>(`profile_posts_${userId}`, []);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -54,6 +69,31 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const following = isFollowing(userId);
   const followerCount = getFollowerCount(userId);
   const followingCount = getFollowingCount(userId);
+  
+  const { username, displayName, avatarUrl, bio, isVerified } = profileData;
+
+  // Fetch profile from database
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, display_name, avatar_url, bio, is_verified')
+        .eq('user_id', userId)
+        .single();
+      
+      if (!error && data) {
+        setProfileData({
+          username: data.username,
+          displayName: data.display_name,
+          avatarUrl: data.avatar_url || undefined,
+          bio: data.bio || '',
+          isVerified: data.is_verified || false
+        });
+      }
+    };
+    
+    fetchProfile();
+  }, [userId]);
 
   // Register this user for follow system
   useEffect(() => {
@@ -120,7 +160,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const handleMessageTap = () => {
     trigger('light');
-    navigate('dm-thread', { userId, username });
+    navigate('dm-thread', { userId, username, displayName, avatarUrl, isVerified });
   };
 
   const stats = [
@@ -147,7 +187,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             >
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-bold tracking-tight">{username}</h1>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-xl font-bold tracking-tight">{username}</h1>
+              {isVerified && <VerifiedBadge size="md" />}
+            </div>
           </div>
           <button className="p-1 active:scale-90 transition-transform">
             <MoreHorizontal className="w-6 h-6" />
@@ -160,14 +203,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {/* Profile Info */}
           <div className="px-4 py-6">
             <div className="flex items-start gap-6">
-              <Avatar className="w-20 h-20 border-2 border-border">
-                {avatarUrl ? (
-                  <AvatarImage src={avatarUrl} alt={displayName} />
-                ) : null}
-                <AvatarFallback className="bg-muted text-muted-foreground text-2xl">
-                  {displayName[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="w-20 h-20 border-2 border-border">
+                  {avatarUrl ? (
+                    <AvatarImage src={avatarUrl} alt={displayName} />
+                  ) : null}
+                  <AvatarFallback className="bg-muted text-muted-foreground text-2xl">
+                    {displayName[0]?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                {isOnline && (
+                  <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-background rounded-full" />
+                )}
+              </div>
 
               <div className="flex-1 flex justify-around pt-2">
                 {stats.map((stat) => (
@@ -188,9 +236,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             </div>
 
             <div className="mt-4">
-              <h2 className="font-semibold">{displayName}</h2>
+              <div className="flex items-center gap-1.5">
+                <h2 className="font-semibold">{displayName}</h2>
+                {isVerified && <VerifiedBadge size="sm" />}
+              </div>
               <p className="text-sm text-muted-foreground mt-1">
-                Bio description goes here
+                {bio || 'No bio yet'}
               </p>
             </div>
 
