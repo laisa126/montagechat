@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message_type: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -53,6 +83,63 @@ export type Database = {
         }
         Relationships: []
       }
+      search_history: {
+        Row: {
+          id: string
+          result_id: string | null
+          result_subtitle: string | null
+          result_title: string
+          search_type: string
+          search_value: string
+          searched_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          result_id?: string | null
+          result_subtitle?: string | null
+          result_title: string
+          search_type: string
+          search_value: string
+          searched_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          result_id?: string | null
+          result_subtitle?: string | null
+          result_title?: string
+          search_type?: string
+          search_value?: string
+          searched_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_presence: {
+        Row: {
+          id: string
+          is_online: boolean | null
+          last_seen: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_online?: boolean | null
+          last_seen?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_online?: boolean | null
+          last_seen?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -76,7 +163,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      conversations: {
+        Row: {
+          conversation_partner: string | null
+          id: string | null
+          last_message: string | null
+          last_message_time: string | null
+          receiver_id: string | null
+          sender_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -85,6 +182,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      upsert_user_presence: {
+        Args: { p_is_online: boolean; p_user_id: string }
+        Returns: undefined
       }
       verify_user: {
         Args: { target_user_id: string; verified: boolean }
