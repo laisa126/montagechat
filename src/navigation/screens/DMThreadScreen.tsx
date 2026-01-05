@@ -6,36 +6,42 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNavigation } from '../NavigationContext';
 import { useHaptic } from '@/hooks/useHaptic';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useConversation } from '@/hooks/useMessages';
+import { usePresenceStatus } from '@/hooks/useUserPresence';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { cn } from '@/lib/utils';
-
-interface Message {
-  id: string;
-  content: string;
-  timestamp: Date;
-  isOutgoing: boolean;
-  type?: 'text' | 'image' | 'heart';
-}
+import { format, isToday, isYesterday } from 'date-fns';
 
 interface DMThreadScreenProps {
   userId: string;
   username: string;
   displayName?: string;
   avatarUrl?: string;
+  isVerified?: boolean;
+  currentUserId?: string;
 }
 
 export const DMThreadScreen: React.FC<DMThreadScreenProps> = ({
   userId,
   username,
   displayName,
-  avatarUrl
+  avatarUrl,
+  isVerified,
+  currentUserId
 }) => {
-  const { goBack, navigate } = useNavigation();
+  const { goBack, navigate, setHideBottomNav } = useNavigation();
   const { trigger } = useHaptic();
   const [newMessage, setNewMessage] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const [messages, setMessages] = useLocalStorage<Message[]>(`dm_${userId}`, []);
+  const { messages, loading, sendMessage } = useConversation(currentUserId, userId);
+  const { isOnline, lastSeen } = usePresenceStatus(userId);
+
+  // Hide bottom nav when in DM
+  useEffect(() => {
+    setHideBottomNav(true);
+    return () => setHideBottomNav(false);
+  }, [setHideBottomNav]);
 
   useEffect(() => {
     // Scroll to bottom on new messages
@@ -59,44 +65,52 @@ export const DMThreadScreen: React.FC<DMThreadScreenProps> = ({
     });
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
     
     trigger('light');
-    const message: Message = {
-      id: `msg-${Date.now()}`,
-      content: newMessage.trim(),
-      timestamp: new Date(),
-      isOutgoing: true,
-      type: 'text'
-    };
-    
-    setMessages(prev => [...prev, message]);
+    await sendMessage(newMessage.trim(), 'text');
     setNewMessage('');
   };
 
-  const handleSendHeart = () => {
+  const handleSendHeart = async () => {
     trigger('medium');
-    const message: Message = {
-      id: `msg-${Date.now()}`,
-      content: '❤️',
-      timestamp: new Date(),
-      isOutgoing: true,
-      type: 'heart'
-    };
-    
-    setMessages(prev => [...prev, message]);
+    await sendMessage('❤️', 'heart');
   };
 
-  const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (dateStr: string) => {
+    return format(new Date(dateStr), 'HH:mm');
   };
 
-  const groupMessagesByDate = (msgs: Message[]) => {
-    const groups: { date: string; messages: Message[] }[] = [];
+  const formatDateLabel = (dateStr: string) => {
+    const date = new Date(dateStr);
+    if (isToday(date)) return 'Today';
+    if (isYesterday(date)) return 'Yesterday';
+    return format(date, 'MMMM d, yyyy');
+  };
+
+  const getStatusText = () => {
+    if (isOnline) return 'Active now';
+    if (lastSeen) {
+      const now = new Date();
+      const diff = now.getTime() - lastSeen.getTime();
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      
+      if (minutes < 1) return 'Active just now';
+      if (minutes < 60) return `Active ${minutes}m ago`;
+      if (hours < 24) return `Active ${hours}h ago`;
+      return `Active ${days}d ago`;
+    }
+    return 'Offline';
+  };
+
+  const groupMessagesByDate = () => {
+    const groups: { date: string; messages: typeof messages }[] = [];
     
-    msgs.forEach(msg => {
-      const dateStr = new Date(msg.timestamp).toLocaleDateString();
+    messages.forEach(msg => {
+      const dateStr = formatDateLabel(msg.created_at);
       const lastGroup = groups[groups.length - 1];
       
       if (lastGroup && lastGroup.date === dateStr) {
@@ -109,7 +123,7 @@ export const DMThreadScreen: React.FC<DMThreadScreenProps> = ({
     return groups;
   };
 
-  const messageGroups = groupMessagesByDate(messages);
+  const messageGroups = groupMessagesByDate();
 
   return (
     <div className="flex flex-col h-full bg-background animate-slide-in-right">
@@ -128,17 +142,28 @@ export const DMThreadScreen: React.FC<DMThreadScreenProps> = ({
               onClick={handleProfileTap}
               className="flex items-center gap-3 active:opacity-70 transition-opacity"
             >
-              <Avatar className="w-9 h-9">
-                {avatarUrl ? (
-                  <AvatarImage src={avatarUrl} alt={displayName || username} />
-                ) : null}
-                <AvatarFallback className="bg-muted text-sm">
-                  {(displayName || username)[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="w-9 h-9">
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName || username} />}
+                  <AvatarFallback className="bg-muted text-sm">
+                    {(displayName || username)[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {isOnline && (
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-background rounded-full" />
+                )}
+              </div>
               <div className="text-left">
-                <p className="font-semibold text-sm leading-tight">{displayName || username}</p>
-                <p className="text-xs text-muted-foreground">Active now</p>
+                <div className="flex items-center gap-1">
+                  <p className="font-semibold text-sm leading-tight">{displayName || username}</p>
+                  {isVerified && <VerifiedBadge size="sm" />}
+                </div>
+                <p className={cn(
+                  "text-xs",
+                  isOnline ? "text-green-500" : "text-muted-foreground"
+                )}>
+                  {getStatusText()}
+                </p>
               </div>
             </button>
           </div>
@@ -160,17 +185,22 @@ export const DMThreadScreen: React.FC<DMThreadScreenProps> = ({
       {/* Messages */}
       <ScrollArea className="flex-1 px-4" ref={scrollRef}>
         <div className="py-4 space-y-4">
-          {messages.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Avatar className="w-20 h-20 mb-4">
-                {avatarUrl ? (
-                  <AvatarImage src={avatarUrl} alt={displayName || username} />
-                ) : null}
+                {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName || username} />}
                 <AvatarFallback className="bg-muted text-2xl">
                   {(displayName || username)[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <p className="font-semibold text-lg">{displayName || username}</p>
+              <div className="flex items-center gap-1 mb-1">
+                <p className="font-semibold text-lg">{displayName || username}</p>
+                {isVerified && <VerifiedBadge size="md" />}
+              </div>
               <p className="text-muted-foreground text-sm">@{username}</p>
               <Button
                 variant="secondary"
@@ -186,37 +216,37 @@ export const DMThreadScreen: React.FC<DMThreadScreenProps> = ({
               <div key={group.date}>
                 <div className="flex justify-center mb-4">
                   <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
-                    {group.date === new Date().toLocaleDateString() ? 'Today' : group.date}
+                    {group.date}
                   </span>
                 </div>
                 
-                {group.messages.map((msg, msgIndex) => (
+                {group.messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={cn(
                       "flex mb-2",
-                      msg.isOutgoing ? "justify-end" : "justify-start"
+                      msg.sender_id === currentUserId ? "justify-end" : "justify-start"
                     )}
                   >
                     <div
                       className={cn(
                         "max-w-[75%] px-4 py-2 rounded-2xl",
-                        msg.isOutgoing
+                        msg.sender_id === currentUserId
                           ? "bg-primary text-primary-foreground rounded-br-md"
                           : "bg-muted rounded-bl-md",
-                        msg.type === 'heart' && "bg-transparent px-0"
+                        msg.message_type === 'heart' && "bg-transparent px-0"
                       )}
                     >
-                      {msg.type === 'heart' ? (
+                      {msg.message_type === 'heart' ? (
                         <span className="text-4xl">{msg.content}</span>
                       ) : (
                         <p className="text-sm">{msg.content}</p>
                       )}
                       <p className={cn(
                         "text-[10px] mt-1",
-                        msg.isOutgoing ? "text-primary-foreground/70" : "text-muted-foreground"
+                        msg.sender_id === currentUserId ? "text-primary-foreground/70" : "text-muted-foreground"
                       )}>
-                        {formatTime(msg.timestamp)}
+                        {formatTime(msg.created_at)}
                       </p>
                     </div>
                   </div>
@@ -227,8 +257,8 @@ export const DMThreadScreen: React.FC<DMThreadScreenProps> = ({
         </div>
       </ScrollArea>
 
-      {/* Input Area */}
-      <div className="sticky bottom-0 bg-background border-t border-border/50 p-3">
+      {/* Input Area - no bottom padding since no nav */}
+      <div className="sticky bottom-0 bg-background border-t border-border/50 p-3 safe-area-bottom">
         <div className="flex items-center gap-2">
           <button className="p-2 active:scale-90 transition-transform">
             <Image className="w-6 h-6 text-primary" />

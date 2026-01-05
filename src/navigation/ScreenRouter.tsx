@@ -70,6 +70,7 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
           username={params.username as string}
           displayName={params.displayName as string}
           avatarUrl={params.avatarUrl as string}
+          isVerified={params.isVerified as boolean}
           currentUserId={currentUserId}
         />
       );
@@ -106,6 +107,7 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
         <SearchScreen
           initialQuery={params.query as string}
           initialType={params.type as string}
+          currentUserId={currentUserId}
         />
       );
 
@@ -126,6 +128,8 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
           username={params.username as string}
           displayName={params.displayName as string}
           avatarUrl={params.avatarUrl as string}
+          isVerified={params.isVerified as boolean}
+          currentUserId={currentUserId}
         />
       );
 

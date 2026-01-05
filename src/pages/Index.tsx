@@ -10,6 +10,7 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useUserPresence } from '@/hooks/useUserPresence';
 import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
 import { ScreenRouter } from '@/navigation/ScreenRouter';
 import { cn } from '@/lib/utils';
@@ -45,10 +46,13 @@ const MainContent = () => {
   const { profile, signUp, signIn, signOut, updateProfile, verifyUser, getAllProfiles, isAdmin, isAuthenticated, loading } = useSupabaseAuth();
   const { isDark, toggleTheme } = useTheme();
   const { swipeOffset, isSwiping, swipeHandlers } = useSwipeNavigation(activeTab, setActiveTab);
-  const { currentNode, navigate, clearHistory, setOriginTab } = useNavigation();
+  const { currentNode, navigate, clearHistory, setOriginTab, hideBottomNav } = useNavigation();
   
   const [stories, setStories] = useLocalStorage<Story[]>('app-stories', []);
   const [posts, setPosts] = useLocalStorage<Post[]>('app-posts', []);
+  
+  // Track user presence
+  useUserPresence(profile?.user_id);
 
   if (loading) {
     return (
@@ -158,7 +162,7 @@ const MainContent = () => {
             getAllProfiles={getAllProfiles}
           />
         </div>
-        <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+        {!hideBottomNav && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
         <Toaster position="top-center" />
       </div>
     );
@@ -181,7 +185,7 @@ const MainContent = () => {
           />
         );
       case 'chat':
-        return <ChatTab />;
+        return <ChatTab currentUserId={profile?.user_id} />;
       case 'reels':
         return <ReelsTab />;
       case 'account':
@@ -241,7 +245,7 @@ const MainContent = () => {
       >
         {renderTab()}
       </div>
-      <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
+      {!hideBottomNav && <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />}
       <Toaster position="top-center" />
     </div>
   );

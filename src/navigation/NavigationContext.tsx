@@ -12,6 +12,8 @@ interface NavigationContextValue {
   clearHistory: () => void;
   originTab: 'home' | 'chat' | 'reels' | 'account';
   setOriginTab: (tab: 'home' | 'chat' | 'reels' | 'account') => void;
+  hideBottomNav: boolean;
+  setHideBottomNav: (hide: boolean) => void;
 }
 
 const NavigationContext = createContext<NavigationContextValue | null>(null);
@@ -39,6 +41,7 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
     currentNode: null
   });
   const [originTab, setOriginTab] = useState<'home' | 'chat' | 'reels' | 'account'>(initialTab);
+  const [hideBottomNav, setHideBottomNav] = useState(false);
   const nodeIdCounter = useRef(0);
 
   const generateNodeId = useCallback((screen: ScreenType) => {
@@ -143,6 +146,7 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
       history: [],
       currentNode: null
     });
+    setHideBottomNav(false);
   }, []);
 
   const value: NavigationContextValue = {
@@ -155,7 +159,9 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
     getNodeState,
     clearHistory,
     originTab,
-    setOriginTab
+    setOriginTab,
+    hideBottomNav,
+    setHideBottomNav
   };
 
   return (

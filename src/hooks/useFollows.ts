@@ -40,14 +40,7 @@ const REQUESTS_KEY = 'app-follow-requests';
 const PRIVACY_KEY = 'app-privacy-settings';
 const DISMISSED_SUGGESTIONS_KEY = 'app-dismissed-suggestions';
 
-// Sample suggested users for demo
-const SAMPLE_SUGGESTED_USERS: SuggestedUser[] = [
-  { id: 'suggested-1', username: 'alex_creates', displayName: 'Alex Creates', mutualCount: 3, mutualNames: ['john_doe', 'jane_smith'], reason: 'Based on your interests' },
-  { id: 'suggested-2', username: 'travel_with_me', displayName: 'Travel Adventures', mutualCount: 5, mutualNames: ['photo_pro', 'wanderlust'], reason: 'Popular in your area' },
-  { id: 'suggested-3', username: 'food_lover_nyc', displayName: 'NYC Foodie', mutualCount: 2, mutualNames: ['chef_mike'], reason: 'Similar to accounts you follow' },
-  { id: 'suggested-4', username: 'fitness_daily', displayName: 'Fitness Daily', mutualCount: 0, reason: 'New to the app' },
-  { id: 'suggested-5', username: 'art_studio', displayName: 'Art Studio', mutualCount: 8, mutualNames: ['creative_mind', 'painter_pro'], reason: 'Popular creator' },
-];
+// No mock data - use real profiles from database
 
 export const useFollows = (currentUserId?: string) => {
   const [follows, setFollows] = useState<Follow[]>(() => {
@@ -278,17 +271,12 @@ export const useFollows = (currentUserId?: string) => {
     ));
   }, [currentUserId]);
 
-  // Suggested users
+  // Suggested users - returns empty array, will be populated from real profiles
   const getSuggestedUsers = useCallback((): SuggestedUser[] => {
     if (!currentUserId) return [];
-    
-    // Filter out users the current user is already following and dismissed suggestions
-    return SAMPLE_SUGGESTED_USERS.filter(u => 
-      !isFollowing(u.id) && 
-      u.id !== currentUserId &&
-      !dismissedSuggestions.includes(u.id)
-    );
-  }, [currentUserId, isFollowing, dismissedSuggestions]);
+    // Return empty - suggested users will be fetched from real profiles
+    return [];
+  }, [currentUserId]);
 
   const dismissSuggestedUser = useCallback((userId: string) => {
     setDismissedSuggestions(prev => [...prev, userId]);

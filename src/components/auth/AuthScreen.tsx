@@ -16,12 +16,13 @@ interface AuthScreenProps {
 
 export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenProps) => {
   const [mode, setMode] = useState<'login' | 'signup'>('login');
-  const [identifier, setIdentifier] = useState(''); // Can be email or username
+  const [identifier, setIdentifier] = useState(() => localStorage.getItem('saved_login_email') || ''); // Can be email or username
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('saved_login_email'));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -61,6 +62,12 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
     
     try {
       if (mode === 'login') {
+        // Save login info if remember me is checked
+        if (rememberMe) {
+          localStorage.setItem('saved_login_email', identifier);
+        } else {
+          localStorage.removeItem('saved_login_email');
+        }
         const result = await onLogin(identifier, password);
         if (result.error) {
           setError(result.error);
@@ -155,6 +162,18 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
+
+          {mode === 'login' && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-border bg-muted"
+              />
+              <span className="text-sm text-muted-foreground">Remember my email</span>
+            </label>
+          )}
 
           {error && (
             <p className="text-destructive text-sm text-center">{error}</p>
