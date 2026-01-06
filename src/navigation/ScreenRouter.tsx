@@ -12,6 +12,7 @@ import { NotificationsScreen } from '@/components/notifications/NotificationsScr
 import { PostCreationScreen } from '@/components/create/PostCreationScreen';
 import { StoryCreationScreen } from '@/components/create/StoryCreationScreen';
 import { SettingsScreen } from '@/components/settings/SettingsScreen';
+import { EditProfileScreen } from '@/components/profile/EditProfileScreen';
 
 interface ScreenRouterProps {
   onBack: () => void;
@@ -29,7 +30,7 @@ interface ScreenRouterProps {
     avatarUrl?: string;
     isVerified?: boolean;
   };
-  onUpdateUser?: (updates: { displayName?: string; username?: string; bio?: string; avatarUrl?: string }) => void;
+  onUpdateUser?: (updates: { displayName?: string; username?: string; bio?: string; avatarUrl?: string }) => Promise<{ error: string | null }>;
   isAdmin?: boolean;
   onVerifyUser?: (userId: string, verified: boolean) => Promise<{ error: string | null }>;
   getAllProfiles?: () => Promise<{ data: any[] | null; error: string | null }>;
@@ -176,6 +177,25 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
             isAdmin={isAdmin}
             onVerifyUser={onVerifyUser}
             getAllProfiles={getAllProfiles}
+          />
+        );
+      }
+      return null;
+
+    case 'edit-profile':
+      if (user && onUpdateUser) {
+        return (
+          <EditProfileScreen
+            user={{
+              id: user.id || '',
+              username: user.username,
+              displayName: user.displayName,
+              bio: user.bio,
+              avatarUrl: user.avatarUrl,
+              isVerified: user.isVerified
+            }}
+            onBack={handleGoBack}
+            onSave={onUpdateUser}
           />
         );
       }

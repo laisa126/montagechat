@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNavigation } from './NavigationContext';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
 interface NavigableAvatarProps {
   userId: string;
@@ -67,6 +68,7 @@ interface NavigableUsernameProps {
   displayName?: string;
   avatarUrl?: string;
   className?: string;
+  isVerified?: boolean;
 }
 
 export const NavigableUsername: React.FC<NavigableUsernameProps> = ({
@@ -74,7 +76,8 @@ export const NavigableUsername: React.FC<NavigableUsernameProps> = ({
   username,
   displayName,
   avatarUrl,
-  className
+  className,
+  isVerified = false
 }) => {
   const { navigate } = useNavigation();
   const { trigger } = useHaptic();
@@ -88,11 +91,12 @@ export const NavigableUsername: React.FC<NavigableUsernameProps> = ({
     <button
       onClick={handleTap}
       className={cn(
-        'font-semibold text-sm hover:underline active:opacity-70 transition-opacity',
+        'inline-flex items-center gap-1 font-semibold text-sm hover:underline active:opacity-70 transition-opacity',
         className
       )}
     >
-      {username}
+      <span>{username}</span>
+      {isVerified && <VerifiedBadge size="sm" />}
     </button>
   );
 };

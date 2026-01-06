@@ -24,7 +24,7 @@ interface AccountTabProps {
   onSignOut: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
-  onUpdateUser: (updates: { displayName?: string; username?: string; bio?: string; avatarUrl?: string }) => void;
+  onUpdateUser: (updates: { displayName?: string; username?: string; bio?: string; avatarUrl?: string }) => Promise<{ error: string | null }>;
   isAdmin?: boolean;
   onVerifyUser?: (userId: string, verified: boolean) => Promise<{ error: string | null }>;
   getAllProfiles?: () => Promise<{ data: Profile[] | null; error: string | null }>;
@@ -127,7 +127,7 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
 
   const handleOpenEditProfile = () => {
     trigger('light');
-    navigate('settings');
+    navigate('edit-profile');
   };
 
   const getCurrentPosts = () => {
