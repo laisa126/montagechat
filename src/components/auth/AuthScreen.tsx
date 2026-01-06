@@ -93,7 +93,7 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
       <div className="flex-1 flex flex-col items-center justify-center px-10">
         {/* Logo */}
         <div className="mb-12">
-          <h1 className="text-5xl font-display italic font-normal tracking-tight bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-display font-normal tracking-tight bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 bg-clip-text text-transparent">
             Montage
           </h1>
         </div>
