@@ -8,14 +8,14 @@ interface BottomNavProps {
   onTabChange: (tab: TabType) => void;
 }
 
-// Smooth rounded play button icon for Reels - larger and perfectly centered
+// Bold rounded square with play button for Reels
 const ReelsIcon = ({ isActive }: { isActive: boolean }) => (
   <div
     className={cn(
       "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200",
       isActive 
         ? "bg-foreground" 
-        : "border-[1.5px] border-muted-foreground"
+        : "border-2 border-muted-foreground"
     )}
   >
     <svg
@@ -30,56 +30,35 @@ const ReelsIcon = ({ isActive }: { isActive: boolean }) => (
   </div>
 );
 
-// Smooth double-line paper plane icon like Instagram DMs
+// X-style DM icon (envelope-like)
 const MessagesIcon = ({ isActive }: { isActive: boolean }) => (
   <svg
     viewBox="0 0 24 24"
-    className={cn(
-      "w-6 h-6 transition-all duration-200"
-    )}
+    className="w-6 h-6 transition-all duration-200"
     fill="none"
   >
-    {/* Main paper plane */}
-    <path
-      d="M22 2L11 13"
+    {/* Envelope base */}
+    <rect
+      x="2"
+      y="4"
+      width="20"
+      height="16"
+      rx="3"
       className={cn(
-        isActive ? "stroke-foreground" : "stroke-muted-foreground"
+        isActive ? "stroke-foreground fill-foreground" : "stroke-muted-foreground"
       )}
-      strokeWidth={isActive ? 2 : 1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-    <path
-      d="M22 2L15 22L11 13L2 9L22 2Z"
-      className={cn(
-        isActive ? "stroke-foreground" : "stroke-muted-foreground"
-      )}
+      strokeWidth={isActive ? 0 : 1.5}
       fill={isActive ? "currentColor" : "none"}
+    />
+    {/* Envelope flap - V shape */}
+    <path
+      d="M2 7L12 13L22 7"
+      className={cn(
+        isActive ? "stroke-background" : "stroke-muted-foreground"
+      )}
       strokeWidth={isActive ? 2 : 1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
-    />
-    {/* Second trailing line for smooth double-line effect */}
-    <path
-      d="M11 13L8.5 17.5"
-      className={cn(
-        isActive ? "stroke-foreground" : "stroke-muted-foreground"
-      )}
-      strokeWidth={isActive ? 1.5 : 1}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      opacity={0.6}
-    />
-    {/* Third trailing line */}
-    <path
-      d="M11 13L6 15"
-      className={cn(
-        isActive ? "stroke-foreground" : "stroke-muted-foreground"
-      )}
-      strokeWidth={isActive ? 1.5 : 1}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      opacity={0.4}
     />
   </svg>
 );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, PlusSquare, Plus, Search } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, Plus, Search } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -100,7 +100,7 @@ export const HomeTab = ({
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Create Post Icon - Left */}
+          {/* Create Post Icon - Left - Bold modern plus */}
           <button 
             onClick={() => {
               trigger('light');
@@ -108,9 +108,9 @@ export const HomeTab = ({
             }}
             className="p-2 -ml-2 active:scale-90 transition-transform duration-200"
           >
-            <PlusSquare 
-              className="w-6 h-6 text-foreground transition-transform duration-200 hover:scale-110" 
-              strokeWidth={1.5}
+            <Plus 
+              className="w-7 h-7 text-foreground transition-transform duration-200 hover:scale-110" 
+              strokeWidth={2.5}
             />
           </button>
 
