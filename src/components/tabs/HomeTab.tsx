@@ -33,6 +33,7 @@ interface Post {
   timeAgo: string;
   isLiked: boolean;
   isSaved: boolean;
+  isVerified?: boolean;
 }
 
 interface HomeTabProps {
@@ -247,6 +248,7 @@ export const HomeTab = ({
                     <NavigableUsername
                       userId={post.userId || post.id}
                       username={post.username}
+                      isVerified={post.isVerified}
                     />
                   </div>
                   <button className="p-1 active:scale-90 transition-transform">

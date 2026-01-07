@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { ScreenType, NavigationNode, NavigationState, GraphNavigationState } from './types';
 
 interface NavigationContextValue {
@@ -10,8 +10,8 @@ interface NavigationContextValue {
   canGoBack: boolean;
   getNodeState: (nodeId: string) => NavigationState | undefined;
   clearHistory: () => void;
-  originTab: 'home' | 'chat' | 'reels' | 'account';
-  setOriginTab: (tab: 'home' | 'chat' | 'reels' | 'account') => void;
+  originTab: 'home' | 'search' | 'reels' | 'chat' | 'account';
+  setOriginTab: (tab: 'home' | 'search' | 'reels' | 'chat' | 'account') => void;
   hideBottomNav: boolean;
   setHideBottomNav: (hide: boolean) => void;
 }
@@ -28,7 +28,7 @@ export const useNavigation = () => {
 
 interface NavigationProviderProps {
   children: React.ReactNode;
-  initialTab?: 'home' | 'chat' | 'reels' | 'account';
+  initialTab?: 'home' | 'search' | 'reels' | 'chat' | 'account';
 }
 
 export const NavigationProvider: React.FC<NavigationProviderProps> = ({ 
@@ -40,7 +40,7 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
     history: [],
     currentNode: null
   });
-  const [originTab, setOriginTab] = useState<'home' | 'chat' | 'reels' | 'account'>(initialTab);
+  const [originTab, setOriginTab] = useState<'home' | 'search' | 'reels' | 'chat' | 'account'>(initialTab);
   const [hideBottomNav, setHideBottomNav] = useState(false);
   const nodeIdCounter = useRef(0);
 
@@ -148,6 +148,34 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
     });
     setHideBottomNav(false);
   }, []);
+
+  // Handle device back button (browser history)
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (state.currentNode) {
+        // Prevent default browser behavior
+        event.preventDefault();
+        
+        // Try to go back in our internal navigation
+        const canGoBackInternal = state.history.length > 0;
+        if (canGoBackInternal) {
+          goBack();
+        } else {
+          // Clear history to return to main tab
+          clearHistory();
+        }
+        
+        // Push state back to prevent actual browser navigation
+        window.history.pushState(null, '', window.location.pathname);
+      }
+    };
+
+    // Push initial state
+    window.history.pushState(null, '', window.location.pathname);
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [state.currentNode, state.history.length, goBack, clearHistory]);
 
   const value: NavigationContextValue = {
     currentNode: state.currentNode,
