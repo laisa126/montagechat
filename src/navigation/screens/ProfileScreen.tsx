@@ -59,7 +59,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     displayName: initialDisplayName,
     avatarUrl: initialAvatarUrl,
     bio: '',
-    isVerified: initialIsVerified || false
+    isVerified: initialIsVerified || false,
+    simulatedFollowers: 0
   });
   
   const [userPosts] = useLocalStorage<Post[]>(`profile_posts_${userId}`, []);
@@ -67,8 +68,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const isOwnProfile = userId === currentUserId;
   const following = isFollowing(userId);
-  const followerCount = getFollowerCount(userId);
-  const followingCount = getFollowingCount(userId);
+  const realFollowerCount = getFollowerCount(userId);
+  const realFollowingCount = getFollowingCount(userId);
+  
+  // Display simulated + real followers
+  const followerCount = realFollowerCount + (profileData.simulatedFollowers || 0);
+  const followingCount = realFollowingCount;
   
   const { username, displayName, avatarUrl, bio, isVerified } = profileData;
 
@@ -77,7 +82,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     const fetchProfile = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, display_name, avatar_url, bio, is_verified')
+        .select('username, display_name, avatar_url, bio, is_verified, simulated_followers')
         .eq('user_id', userId)
         .single();
       
@@ -87,7 +92,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           displayName: data.display_name,
           avatarUrl: data.avatar_url || undefined,
           bio: data.bio || '',
-          isVerified: data.is_verified || false
+          isVerified: data.is_verified || false,
+          simulatedFollowers: data.simulated_followers || 0
         });
       }
     };
@@ -163,10 +169,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     navigate('dm-thread', { userId, username, displayName, avatarUrl, isVerified });
   };
 
+  const formatCount = (count: number): string => {
+    if (count >= 1000000) return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (count >= 1000) return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    return count.toString();
+  };
+
   const stats = [
-    { label: 'Posts', value: userPosts.length, onTap: undefined },
-    { label: 'Followers', value: followerCount, onTap: handleFollowersTap },
-    { label: 'Following', value: followingCount, onTap: handleFollowingTap }
+    { label: 'Posts', value: userPosts.length, displayValue: userPosts.length.toString(), onTap: undefined },
+    { label: 'Followers', value: followerCount, displayValue: formatCount(followerCount), onTap: handleFollowersTap },
+    { label: 'Following', value: followingCount, displayValue: formatCount(followingCount), onTap: handleFollowingTap }
   ];
 
   const tabs: { id: ContentTab; icon: typeof Grid3X3 }[] = [
@@ -228,7 +240,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                       stat.onTap && "active:scale-95"
                     )}
                   >
-                    <p className="font-bold text-lg">{stat.value}</p>
+                    <p className="font-bold text-lg">{stat.displayValue}</p>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
                   </button>
                 ))}

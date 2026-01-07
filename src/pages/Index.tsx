@@ -43,7 +43,7 @@ interface Post {
 
 const MainContent = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const { profile, signUp, signIn, signOut, updateProfile, verifyUser, getAllProfiles, isAdmin, isAuthenticated, loading } = useSupabaseAuth();
+  const { profile, signUp, signIn, signOut, updateProfile, verifyUser, getAllProfiles, setSimulatedFollowers, isAdmin, isAuthenticated, loading } = useSupabaseAuth();
   const { isDark, toggleTheme } = useTheme();
   const { swipeOffset, isSwiping, swipeHandlers } = useSwipeNavigation(activeTab, setActiveTab);
   const { currentNode, navigate, clearHistory, setOriginTab, hideBottomNav } = useNavigation();
@@ -159,6 +159,7 @@ const MainContent = () => {
             })}
             isAdmin={isAdmin}
             onVerifyUser={verifyUser}
+            onSetSimulatedFollowers={setSimulatedFollowers}
             getAllProfiles={getAllProfiles}
           />
         </div>
@@ -199,6 +200,7 @@ const MainContent = () => {
               bio: profile.bio,
               avatarUrl: profile.avatar_url || undefined,
               isVerified: profile.is_verified,
+              simulatedFollowers: profile.simulated_followers,
               createdAt: new Date(profile.created_at)
             }} 
             isAdmin={isAdmin}

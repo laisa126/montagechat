@@ -6,5 +6,6 @@ export interface User {
   bio: string;
   avatarUrl?: string;
   isVerified?: boolean;
+  simulatedFollowers?: number;
   createdAt: Date;
 }

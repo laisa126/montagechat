@@ -46,7 +46,8 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  const followerCount = getFollowerCount(user.id);
+  const realFollowerCount = getFollowerCount(user.id);
+  const followerCount = realFollowerCount + (user.simulatedFollowers || 0);
   const followingCount = getFollowingCount(user.id);
 
   // Register current user for follow system
@@ -79,10 +80,16 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
     });
   };
 
+  const formatCount = (count: number): string => {
+    if (count >= 1000000) return (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (count >= 1000) return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    return count.toString();
+  };
+
   const stats = [
-    { label: 'Posts', value: posts.length, onTap: undefined },
-    { label: 'Followers', value: followerCount, onTap: handleFollowersTap },
-    { label: 'Following', value: followingCount, onTap: handleFollowingTap },
+    { label: 'Posts', value: posts.length, displayValue: posts.length.toString(), onTap: undefined },
+    { label: 'Followers', value: followerCount, displayValue: formatCount(followerCount), onTap: handleFollowersTap },
+    { label: 'Following', value: followingCount, displayValue: formatCount(followingCount), onTap: handleFollowingTap },
   ];
 
   const contentTabs: { id: ContentTab; icon: typeof Grid3X3 }[] = [
@@ -220,7 +227,7 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
                       stat.onTap && "active:scale-95"
                     )}
                   >
-                    <p className="font-bold text-lg">{stat.value}</p>
+                    <p className="font-bold text-lg">{stat.displayValue}</p>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
                   </button>
                 ))}

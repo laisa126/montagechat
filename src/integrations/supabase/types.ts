@@ -53,6 +53,7 @@ export type Database = {
           id: string
           is_private: boolean | null
           is_verified: boolean | null
+          simulated_followers: number | null
           updated_at: string
           user_id: string
           username: string
@@ -65,6 +66,7 @@ export type Database = {
           id?: string
           is_private?: boolean | null
           is_verified?: boolean | null
+          simulated_followers?: number | null
           updated_at?: string
           user_id: string
           username: string
@@ -77,6 +79,7 @@ export type Database = {
           id?: string
           is_private?: boolean | null
           is_verified?: boolean | null
+          simulated_followers?: number | null
           updated_at?: string
           user_id?: string
           username?: string
@@ -181,6 +184,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      set_simulated_followers: {
+        Args: { follower_count: number; target_user_id: string }
         Returns: boolean
       }
       upsert_user_presence: {
