@@ -33,6 +33,7 @@ interface ScreenRouterProps {
   onUpdateUser?: (updates: { displayName?: string; username?: string; bio?: string; avatarUrl?: string }) => Promise<{ error: string | null }>;
   isAdmin?: boolean;
   onVerifyUser?: (userId: string, verified: boolean) => Promise<{ error: string | null }>;
+  onSetSimulatedFollowers?: (userId: string, count: number) => Promise<{ error: string | null }>;
   getAllProfiles?: () => Promise<{ data: any[] | null; error: string | null }>;
 }
 
@@ -47,6 +48,7 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
   onUpdateUser,
   isAdmin,
   onVerifyUser,
+  onSetSimulatedFollowers,
   getAllProfiles
 }) => {
   const { currentNode, goBack } = useNavigation();
@@ -176,6 +178,7 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
             onUpdateUser={onUpdateUser}
             isAdmin={isAdmin}
             onVerifyUser={onVerifyUser}
+            onSetSimulatedFollowers={onSetSimulatedFollowers}
             getAllProfiles={getAllProfiles}
           />
         );

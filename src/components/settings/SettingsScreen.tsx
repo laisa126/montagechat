@@ -49,6 +49,7 @@ interface SettingsScreenProps {
   onUpdateUser: (updates: { displayName?: string; username?: string; bio?: string }) => void;
   isAdmin?: boolean;
   onVerifyUser?: (userId: string, verified: boolean) => Promise<{ error: string | null }>;
+  onSetSimulatedFollowers?: (userId: string, count: number) => Promise<{ error: string | null }>;
   getAllProfiles?: () => Promise<{ data: Profile[] | null; error: string | null }>;
 }
 
@@ -96,7 +97,7 @@ const SettingsSection = ({ title, children }: { title?: string; children: React.
   </div>
 );
 
-export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user, onUpdateUser, isAdmin, onVerifyUser, getAllProfiles }: SettingsScreenProps) => {
+export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user, onUpdateUser, isAdmin, onVerifyUser, onSetSimulatedFollowers, getAllProfiles }: SettingsScreenProps) => {
   const [currentView, setCurrentView] = useState<SettingsView>('main');
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -150,6 +151,7 @@ export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user,
       <AdminPanel
         onBack={() => setCurrentView('main')}
         onVerifyUser={onVerifyUser}
+        onSetSimulatedFollowers={onSetSimulatedFollowers}
         getAllProfiles={getAllProfiles}
       />
     );

@@ -11,6 +11,7 @@ export interface Profile {
   avatar_url: string | null;
   is_private: boolean;
   is_verified: boolean;
+  simulated_followers: number;
   created_at: string;
   updated_at: string;
 }
@@ -205,6 +206,21 @@ export const useSupabaseAuth = () => {
     return { data: data as Profile[], error: null };
   };
 
+  const setSimulatedFollowers = async (targetUserId: string, count: number) => {
+    if (!isAdmin) return { error: 'Not authorized' };
+
+    const { error } = await supabase.rpc('set_simulated_followers', {
+      target_user_id: targetUserId,
+      follower_count: count
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    return { error: null };
+  };
+
   return {
     user,
     session,
@@ -217,6 +233,7 @@ export const useSupabaseAuth = () => {
     updateProfile,
     verifyUser,
     getAllProfiles,
+    setSimulatedFollowers,
     isAuthenticated: !!session
   };
 };
