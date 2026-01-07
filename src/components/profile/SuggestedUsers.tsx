@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,8 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useNavigation } from '@/navigation/NavigationContext';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useFollows } from '@/hooks/useFollows';
+import { supabase } from '@/integrations/supabase/client';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { cn } from '@/lib/utils';
 
 interface SuggestedUser {
@@ -16,6 +18,7 @@ interface SuggestedUser {
   mutualCount?: number;
   mutualNames?: string[];
   reason?: string;
+  isVerified?: boolean;
 }
 
 interface SuggestedUsersProps {
@@ -31,18 +34,44 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
   className,
   variant = 'horizontal',
   showDismiss = true,
-  title = 'Suggested for you'
+  title = 'People you may know'
 }) => {
   const { navigate } = useNavigation();
   const { trigger } = useHaptic();
   const { 
     isFollowing, 
     toggleFollow, 
-    getSuggestedUsers,
     dismissSuggestedUser
   } = useFollows(currentUserId);
+  
+  const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<string[]>([]);
 
-  const suggestedUsers = getSuggestedUsers();
+  // Fetch real users from database
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, username, display_name, avatar_url, is_verified')
+        .neq('user_id', currentUserId || '')
+        .limit(10);
+      
+      if (!error && data) {
+        setSuggestedUsers(data.map(p => ({
+          id: p.user_id,
+          username: p.username,
+          displayName: p.display_name,
+          avatarUrl: p.avatar_url || undefined,
+          isVerified: p.is_verified || false,
+          reason: 'Suggested for you'
+        })));
+      }
+    };
+    
+    if (currentUserId) {
+      fetchUsers();
+    }
+  }, [currentUserId]);
 
   const handleProfileTap = (user: SuggestedUser) => {
     trigger('light');
@@ -66,11 +95,13 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
 
   const handleDismiss = (userId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    trigger('light');
-    dismissSuggestedUser(userId);
-  };
+      trigger('light');
+      setDismissedIds(prev => [...prev, userId]);
+    };
 
-  if (suggestedUsers.length === 0) {
+  const filteredUsers = suggestedUsers.filter(u => !dismissedIds.includes(u.id) && !isFollowing(u.id));
+
+  if (filteredUsers.length === 0) {
     return null;
   }
 
@@ -81,7 +112,7 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
           {title}
         </h3>
         <div className="space-y-1">
-          {suggestedUsers.map((user) => (
+          {filteredUsers.map((user) => (
             <div
               key={user.id}
               className="flex items-center gap-3 px-4 py-2"
@@ -151,7 +182,7 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
       
       <ScrollArea className="w-full">
         <div className="flex gap-3 px-4 pb-2">
-          {suggestedUsers.map((user) => (
+          {filteredUsers.map((user) => (
             <div
               key={user.id}
               className="relative flex flex-col items-center bg-card border border-border rounded-xl p-4 min-w-[150px] w-[150px]"

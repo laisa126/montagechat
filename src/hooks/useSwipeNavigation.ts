@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, TouchEvent } from 'react';
 
-type TabType = 'home' | 'chat' | 'reels' | 'account';
+type TabType = 'home' | 'search' | 'reels' | 'chat' | 'account';
 
-const TAB_ORDER: TabType[] = ['home', 'chat', 'reels', 'account'];
+const TAB_ORDER: TabType[] = ['home', 'search', 'reels', 'chat', 'account'];
 const SWIPE_THRESHOLD = 50;
 
 export const useSwipeNavigation = (

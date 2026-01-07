@@ -185,6 +185,9 @@ const MainContent = () => {
             currentUserId={profile?.user_id}
           />
         );
+      case 'search':
+        navigate('search');
+        return null;
       case 'chat':
         return <ChatTab currentUserId={profile?.user_id} />;
       case 'reels':

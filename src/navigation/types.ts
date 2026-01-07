@@ -32,7 +32,7 @@ export interface NavigationNode {
   screen: ScreenType;
   params?: Record<string, unknown>;
   state?: NavigationState;
-  originTab?: 'home' | 'chat' | 'reels' | 'account';
+  originTab?: 'home' | 'search' | 'reels' | 'chat' | 'account';
   timestamp: number;
 }
 

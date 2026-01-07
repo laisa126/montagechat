@@ -93,7 +93,7 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
       <div className="flex-1 flex flex-col items-center justify-center px-10">
         {/* Logo */}
         <div className="mb-12">
-          <h1 className="text-5xl font-display font-normal tracking-tight bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-500 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-display font-normal tracking-tight text-foreground">
             Montage
           </h1>
         </div>
@@ -181,7 +181,7 @@ export const AuthScreen = ({ onLogin, onSignUp, isLoading = false }: AuthScreenP
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-xl font-semibold bg-gradient-to-r from-rose-500 via-fuchsia-500 to-indigo-500 hover:opacity-90 text-white border-0"
+            className="w-full h-12 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-primary-foreground border-0"
             disabled={isSubmitting || (!identifier && mode === 'login') || !password || (mode === 'signup' && (!username || !displayName || !email))}
           >
             {isSubmitting ? (
