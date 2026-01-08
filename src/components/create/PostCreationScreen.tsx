@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 interface PostCreationScreenProps {
   onBack: () => void;
-  onPost: (post: { image?: string; caption: string }) => void;
+  onPost: (post: { image?: string; imageFile?: File; caption: string }) => void;
 }
 
 type EditTab = 'filters' | 'adjust';
@@ -33,6 +33,7 @@ const FILTERS = [
 export const PostCreationScreen = ({ onBack, onPost }: PostCreationScreenProps) => {
   const [step, setStep] = useState<'select' | 'edit' | 'caption'>('select');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
   const [activeFilter, setActiveFilter] = useState('none');
   const [editTab, setEditTab] = useState<EditTab>('filters');
@@ -50,6 +51,7 @@ export const PostCreationScreen = ({ onBack, onPost }: PostCreationScreenProps) 
     const file = e.target.files?.[0];
     if (file) {
       trigger('medium');
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result as string);
@@ -63,6 +65,7 @@ export const PostCreationScreen = ({ onBack, onPost }: PostCreationScreenProps) 
     trigger('success');
     onPost({
       image: selectedImage || undefined,
+      imageFile: selectedFile || undefined,
       caption
     });
   };

@@ -12,10 +12,13 @@ import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUserPresence } from '@/hooks/useUserPresence';
 import { useFollows } from '@/hooks/useFollows';
+import { usePosts } from '@/hooks/usePosts';
 import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
 import { ScreenRouter } from '@/navigation/ScreenRouter';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Story {
   id: string;
@@ -29,20 +32,6 @@ interface Story {
   timestamp?: string;
 }
 
-interface Post {
-  id: string;
-  username: string;
-  userId: string;
-  content: string;
-  image?: string;
-  likes: number;
-  comments: number;
-  timeAgo: string;
-  isLiked: boolean;
-  isSaved: boolean;
-  isVerified?: boolean;
-}
-
 const MainContent = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const { profile, signUp, signIn, signOut, updateProfile, verifyUser, getAllProfiles, setSimulatedFollowers, isAdmin, isAuthenticated, loading } = useSupabaseAuth();
@@ -51,17 +40,32 @@ const MainContent = () => {
   const { currentNode, navigate, clearHistory, setOriginTab, hideBottomNav } = useNavigation();
   
   const [stories, setStories] = useLocalStorage<Story[]>('app-stories', []);
-  const [posts, setPosts] = useLocalStorage<Post[]>('app-posts', []);
   const { getFollowingUserIds } = useFollows(profile?.user_id);
+  const { posts: dbPosts, createPost, uploadPostImage, toggleLike } = usePosts(profile?.user_id);
   
-  // Filter posts to show only from followed users or own posts
+  // Transform database posts to feed format
   const feedPosts = useMemo(() => {
     const followingIds = getFollowingUserIds(profile?.user_id || '');
-    return posts.filter(post => 
-      post.userId === profile?.user_id || // Own posts
-      followingIds.includes(post.userId) // Posts from followed users
-    );
-  }, [posts, profile?.user_id, getFollowingUserIds]);
+    
+    return dbPosts
+      .filter(post => 
+        post.user_id === profile?.user_id || // Own posts
+        followingIds.includes(post.user_id) // Posts from followed users
+      )
+      .map(post => ({
+        id: post.id,
+        username: post.username || 'user',
+        userId: post.user_id,
+        content: post.caption || '',
+        image: post.image_url || undefined,
+        likes: post.likes_count || 0,
+        comments: post.comments_count || 0,
+        timeAgo: formatDistanceToNow(new Date(post.created_at), { addSuffix: true }),
+        isLiked: post.is_liked || false,
+        isSaved: post.is_saved || false,
+        isVerified: post.is_verified || false
+      }));
+  }, [dbPosts, profile?.user_id, getFollowingUserIds]);
   
   // Track user presence
   useUserPresence(profile?.user_id);
@@ -78,20 +82,25 @@ const MainContent = () => {
     return <AuthScreen onLogin={signIn} onSignUp={signUp} />;
   }
 
-  const handleCreatePost = (post: { image?: string; caption: string }) => {
-    const newPost: Post = {
-      id: Date.now().toString(),
-      username: profile?.username || 'user',
-      userId: profile?.user_id || 'current_user',
-      content: post.caption,
-      image: post.image,
-      likes: 0,
-      comments: 0,
-      timeAgo: 'Just now',
-      isLiked: false,
-      isSaved: false
-    };
-    setPosts(prev => [newPost, ...prev]);
+  const handleCreatePost = async (post: { image?: string; imageFile?: File; caption: string }) => {
+    let imageUrl: string | null = null;
+    
+    // Upload image if file provided
+    if (post.imageFile) {
+      const { url, error: uploadError } = await uploadPostImage(post.imageFile);
+      if (uploadError) {
+        toast.error('Failed to upload image');
+        return;
+      }
+      imageUrl = url;
+    }
+    
+    const { error } = await createPost(imageUrl, post.caption);
+    if (error) {
+      toast.error('Failed to create post');
+    } else {
+      toast.success('Post created!');
+    }
   };
 
   const handleCreateStory = (story: { image: string; text?: string; music?: { name: string; artist: string } }) => {
@@ -116,20 +125,13 @@ const MainContent = () => {
     ));
   };
 
-  const handleLike = (postId: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, isLiked: !post.isLiked, likes: post.isLiked ? post.likes - 1 : post.likes + 1 }
-        : post
-    ));
+  const handleLike = async (postId: string) => {
+    await toggleLike(postId);
   };
 
   const handleSave = (postId: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, isSaved: !post.isSaved }
-        : post
-    ));
+    // TODO: Implement saves table
+    toast.info('Save feature coming soon');
   };
 
   const handleTabChange = (tab: TabType) => {
