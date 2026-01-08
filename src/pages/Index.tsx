@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { BottomNav, TabType } from '@/components/navigation/BottomNav';
 import { HomeTab } from '@/components/tabs/HomeTab';
 import { ChatTab } from '@/components/tabs/ChatTab';
@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUserPresence } from '@/hooks/useUserPresence';
+import { useFollows } from '@/hooks/useFollows';
 import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
 import { ScreenRouter } from '@/navigation/ScreenRouter';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,7 @@ interface Post {
   timeAgo: string;
   isLiked: boolean;
   isSaved: boolean;
+  isVerified?: boolean;
 }
 
 const MainContent = () => {
@@ -50,6 +52,16 @@ const MainContent = () => {
   
   const [stories, setStories] = useLocalStorage<Story[]>('app-stories', []);
   const [posts, setPosts] = useLocalStorage<Post[]>('app-posts', []);
+  const { getFollowingUserIds } = useFollows(profile?.user_id);
+  
+  // Filter posts to show only from followed users or own posts
+  const feedPosts = useMemo(() => {
+    const followingIds = getFollowingUserIds(profile?.user_id || '');
+    return posts.filter(post => 
+      post.userId === profile?.user_id || // Own posts
+      followingIds.includes(post.userId) // Posts from followed users
+    );
+  }, [posts, profile?.user_id, getFollowingUserIds]);
   
   // Track user presence
   useUserPresence(profile?.user_id);
@@ -178,7 +190,7 @@ const MainContent = () => {
             onCreateStory={() => handleNavigate('create-story')}
             onNotifications={() => handleNavigate('notifications')}
             stories={stories}
-            posts={posts}
+            posts={feedPosts}
             onLike={handleLike}
             onSave={handleSave}
             onStoryViewed={handleStoryViewed}
@@ -227,7 +239,7 @@ const MainContent = () => {
             onCreateStory={() => handleNavigate('create-story')}
             onNotifications={() => handleNavigate('notifications')}
             stories={stories}
-            posts={posts}
+            posts={feedPosts}
             onLike={handleLike}
             onSave={handleSave}
             onStoryViewed={handleStoryViewed}

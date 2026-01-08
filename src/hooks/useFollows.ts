@@ -170,6 +170,13 @@ export const useFollows = (currentUserId?: string) => {
     return follows.filter(f => f.followerId === userId).length;
   }, [follows]);
 
+  // Get IDs of users that a user is following
+  const getFollowingUserIds = useCallback((userId: string): string[] => {
+    return follows
+      .filter(f => f.followerId === userId)
+      .map(f => f.followingId);
+  }, [follows]);
+
   // Privacy settings
   const isPrivateAccount = useCallback((userId: string): boolean => {
     return privacySettings[userId]?.isPrivate || false;
@@ -305,6 +312,7 @@ export const useFollows = (currentUserId?: string) => {
     getFollowing,
     getFollowerCount,
     getFollowingCount,
+    getFollowingUserIds,
     registerUser,
     // Privacy
     isPrivateAccount,

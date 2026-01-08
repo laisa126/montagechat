@@ -3,6 +3,7 @@ export type ScreenType =
   | 'feed'
   | 'profile'
   | 'post-detail'
+  | 'post-feed-viewer'
   | 'reel-viewer'
   | 'comment-thread'
   | 'notifications'
