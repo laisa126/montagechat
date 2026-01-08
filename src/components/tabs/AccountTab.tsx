@@ -146,6 +146,20 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
     }
   };
 
+  const handlePostTap = (index: number) => {
+    trigger('light');
+    const currentPosts = getCurrentPosts();
+    navigate('post-feed-viewer', { 
+      posts: currentPosts, 
+      initialIndex: index,
+      userId: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      isVerified: user.isVerified
+    });
+  };
+
   return (
     <div className="flex flex-col h-full bg-background">
       {/* Hidden file inputs */}
@@ -289,9 +303,10 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
           <div className="p-0.5">
             {getCurrentPosts().length > 0 ? (
               <div className="grid grid-cols-3 gap-0.5">
-                {getCurrentPosts().map((post) => (
+                {getCurrentPosts().map((post, index) => (
                   <button 
                     key={post.id} 
+                    onClick={() => handlePostTap(index)}
                     className="aspect-square bg-muted overflow-hidden active:opacity-80 transition-opacity"
                   >
                     <img 

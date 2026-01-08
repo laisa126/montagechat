@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigation } from './NavigationContext';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { PostDetailScreen } from './screens/PostDetailScreen';
+import { PostFeedViewer } from './screens/PostFeedViewer';
 import { CommentThreadScreen } from './screens/CommentThreadScreen';
 import { ReelViewerScreen } from './screens/ReelViewerScreen';
 import { SearchScreen } from './screens/SearchScreen';
@@ -86,6 +87,19 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
           username={params.username as string}
           userId={params.userId as string}
           showLikes={params.showLikes as boolean}
+        />
+      );
+
+    case 'post-feed-viewer':
+      return (
+        <PostFeedViewer
+          posts={(params.posts as any[]) || []}
+          initialIndex={(params.initialIndex as number) || 0}
+          userId={params.userId as string}
+          username={params.username as string}
+          displayName={params.displayName as string}
+          avatarUrl={params.avatarUrl as string}
+          isVerified={params.isVerified as boolean}
         />
       );
 

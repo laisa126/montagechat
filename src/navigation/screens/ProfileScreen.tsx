@@ -130,12 +130,21 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     updateState({ selectedTab: tab });
   };
 
-  const handlePostTap = (post: Post) => {
+  const handlePostTap = (post: Post, index: number) => {
     trigger('light');
     if (post.type === 'reel') {
       navigate('reel-viewer', { reelId: post.id, userId });
     } else {
-      navigate('post-detail', { postId: post.id, userId, username });
+      // Open Instagram-style scrollable feed viewer
+      navigate('post-feed-viewer', { 
+        posts: userPosts, 
+        initialIndex: index,
+        userId,
+        username,
+        displayName,
+        avatarUrl,
+        isVerified
+      });
     }
   };
 
@@ -317,10 +326,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <div className="p-0.5">
             {userPosts.length > 0 ? (
               <div className="grid grid-cols-3 gap-0.5">
-                {userPosts.map((post) => (
+                {userPosts.map((post, index) => (
                   <button
                     key={post.id}
-                    onClick={() => handlePostTap(post)}
+                    onClick={() => handlePostTap(post, index)}
                     className="aspect-square bg-muted overflow-hidden active:opacity-80 transition-opacity relative"
                   >
                     <img

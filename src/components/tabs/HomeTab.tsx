@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, Plus, Search } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -65,11 +65,6 @@ export const HomeTab = ({
   const { t } = useLanguage();
   const { navigate } = useNavigation();
 
-  const handleSearch = () => {
-    trigger('light');
-    navigate('search');
-  };
-
   const handleLike = (postId: string) => {
     trigger('light');
     onLike(postId);
@@ -118,17 +113,6 @@ export const HomeTab = ({
           <h1 className="text-xl font-bold tracking-tight">{t('feed')}</h1>
 
           <div className="flex items-center gap-1">
-            {/* Search Icon */}
-            <button 
-              onClick={handleSearch}
-              className="p-2 active:scale-90 transition-transform duration-200"
-            >
-              <Search 
-                className="w-6 h-6 text-foreground transition-transform duration-200 hover:scale-110" 
-                strokeWidth={1.5}
-              />
-            </button>
-
             {/* Notification Icon */}
             <button 
               onClick={() => {
