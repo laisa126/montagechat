@@ -81,7 +81,7 @@ export const useSupabaseAuth = () => {
     setIsAdmin(!error && !!data);
   };
 
-  const signUp = async (email: string, password: string, username: string, displayName: string) => {
+  const signUp = async (email: string, password: string, username: string, displayName: string, birthday?: string, gender?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -101,6 +101,14 @@ export const useSupabaseAuth = () => {
         return { error: 'An account with this email already exists' };
       }
       return { error: error.message };
+    }
+
+    // Update profile with birthday and gender if provided
+    if (data.user && (birthday || gender)) {
+      await supabase
+        .from('profiles')
+        .update({ birthday, gender })
+        .eq('user_id', data.user.id);
     }
 
     return { error: null };
