@@ -36,10 +36,15 @@ export const FollowListScreen: React.FC<FollowListScreenProps> = ({
   
   const [activeTab, setActiveTab] = useState<ListTab>(initialTab);
 
-  const followers = getFollowers(userId);
+  const allFollowers = getFollowers(userId);
   const following = getFollowing(userId);
   const followerCount = getFollowerCount(userId);
   const followingCount = getFollowingCount(userId);
+  
+  // Only show 5 followers if not viewing own profile
+  const isOwnProfile = userId === currentUserId;
+  const followers = isOwnProfile ? allFollowers : allFollowers.slice(0, 5);
+  const hasMoreFollowers = !isOwnProfile && allFollowers.length > 5;
 
   const handleBack = () => {
     trigger('light');
@@ -169,6 +174,15 @@ export const FollowListScreen: React.FC<FollowListScreenProps> = ({
                 {activeTab === 'followers' 
                   ? 'When people follow this account, they\'ll appear here.' 
                   : 'When this account follows people, they\'ll appear here.'}
+              </p>
+            </div>
+          )}
+          
+          {/* Show "only owner can view all" message */}
+          {activeTab === 'followers' && hasMoreFollowers && (
+            <div className="py-6 px-4 text-center border-t border-border">
+              <p className="text-sm text-muted-foreground">
+                Only @{username} can view all their followers
               </p>
             </div>
           )}
