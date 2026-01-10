@@ -1,4 +1,4 @@
-import { Settings, Grid3X3, Bookmark, Heart, Plus, Camera } from 'lucide-react';
+import { Settings, Grid3X3, Bookmark, Heart, Plus, Camera, ChevronDown } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -9,6 +9,7 @@ import { useNavigation } from '@/navigation/NavigationContext';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useFollows } from '@/hooks/useFollows';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { AccountSwitcherDialog } from '@/components/settings/AccountSwitcherDialog';
 import type { Profile } from '@/hooks/useSupabaseAuth';
 
 type ContentTab = 'posts' | 'saved' | 'liked';
@@ -20,7 +21,7 @@ interface Post {
 }
 
 interface AccountTabProps {
-  user: User;
+  user: User & { email?: string };
   onSignOut: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
@@ -42,6 +43,7 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
   });
   const [savedPosts] = useState<Post[]>([]);
   const [likedPosts] = useState<Post[]>([]);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -178,13 +180,32 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
         className="hidden"
       />
 
+      {/* Account Switcher Dialog */}
+      <AccountSwitcherDialog
+        open={showAccountSwitcher}
+        onOpenChange={setShowAccountSwitcher}
+        currentUserId={user.id}
+        currentUsername={user.username}
+        currentDisplayName={user.displayName}
+        currentAvatarUrl={user.avatarUrl}
+        currentEmail={user.email || ''}
+        onSwitchSuccess={() => window.location.reload()}
+      />
+
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
+          <button 
+            onClick={() => {
+              trigger('light');
+              setShowAccountSwitcher(true);
+            }}
+            className="flex items-center gap-1.5 active:opacity-70 transition-opacity"
+          >
             <h1 className="text-xl font-bold tracking-tight">{user.username}</h1>
             {user.isVerified && <VerifiedBadge size="md" />}
-          </div>
+            <ChevronDown className="w-5 h-5" />
+          </button>
           <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 

@@ -34,7 +34,7 @@ interface Story {
 
 const MainContent = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const { profile, signUp, signIn, signOut, updateProfile, verifyUser, getAllProfiles, setSimulatedFollowers, isAdmin, isAuthenticated, loading } = useSupabaseAuth();
+  const { user, profile, signUp, signIn, signOut, updateProfile, verifyUser, getAllProfiles, setSimulatedFollowers, isAdmin, isAuthenticated, loading } = useSupabaseAuth();
   const { isDark, toggleTheme } = useTheme();
   const { swipeOffset, isSwiping, swipeHandlers } = useSwipeNavigation(activeTab, setActiveTab);
   const { currentNode, navigate, clearHistory, setOriginTab, hideBottomNav } = useNavigation();
@@ -213,7 +213,7 @@ const MainContent = () => {
               id: profile.user_id,
               displayName: profile.display_name,
               username: profile.username,
-              email: '',
+              email: user?.email || '',
               bio: profile.bio,
               avatarUrl: profile.avatar_url || undefined,
               isVerified: profile.is_verified,
