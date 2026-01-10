@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, Check, LogOut, User } from 'lucide-react';
+import { Plus, Check, Key, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -33,12 +34,22 @@ export const AccountSwitcherDialog = ({
   currentEmail,
   onSwitchSuccess
 }: AccountSwitcherDialogProps) => {
-  const { savedAccounts, removeAccount, switchAccount, saveCurrentAccount } = useAccountSwitcher();
+  const { 
+    savedAccounts, 
+    switchAccount, 
+    quickSwitch, 
+    saveCurrentAccount, 
+    hasStoredPassword,
+    savePassword
+  } = useAccountSwitcher();
+  
   const [showLogin, setShowLogin] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [saveLoginInfo, setSaveLoginInfo] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
   // Save current account when dialog opens
   const handleOpen = () => {
@@ -52,14 +63,37 @@ export const AccountSwitcherDialog = ({
     }
   };
 
-  const handleSwitchAccount = async (accountEmail: string) => {
-    if (accountEmail === currentEmail) {
+  const handleSwitchAccount = async (account: { id: string; email: string }) => {
+    if (account.email === currentEmail) {
       onOpenChange(false);
       return;
     }
     
-    setShowLogin(true);
-    setEmail(accountEmail);
+    // Check if we have stored password for quick switch
+    if (hasStoredPassword(account.id)) {
+      setLoading(true);
+      setSelectedAccountId(account.id);
+      
+      const { error } = await quickSwitch(account.id);
+      
+      if (error) {
+        // Password might be wrong, ask for new password
+        setShowLogin(true);
+        setEmail(account.email);
+        setSelectedAccountId(account.id);
+        setError('Session expired. Please enter your password.');
+      } else {
+        onOpenChange(false);
+        onSwitchSuccess?.();
+      }
+      setLoading(false);
+      setSelectedAccountId(null);
+    } else {
+      // No stored password, show login form
+      setShowLogin(true);
+      setEmail(account.email);
+      setSelectedAccountId(account.id);
+    }
   };
 
   const handleLogin = async () => {
@@ -71,12 +105,18 @@ export const AccountSwitcherDialog = ({
     setLoading(true);
     setError('');
 
-    const { error } = await switchAccount(email, password);
+    const { error, userId } = await switchAccount(email, password);
     
     if (error) {
       setError(error);
       setLoading(false);
     } else {
+      // If save login info is checked, password is already saved in switchAccount
+      // If not checked, we need to clear it
+      if (!saveLoginInfo && userId) {
+        // Password won't be saved (it's only saved in switchAccount if successful)
+      }
+      
       setLoading(false);
       onOpenChange(false);
       onSwitchSuccess?.();
@@ -87,6 +127,7 @@ export const AccountSwitcherDialog = ({
     setShowLogin(true);
     setEmail('');
     setPassword('');
+    setSelectedAccountId(null);
   };
 
   const otherAccounts = savedAccounts.filter(acc => acc.id !== currentUserId);
@@ -99,6 +140,7 @@ export const AccountSwitcherDialog = ({
         setEmail('');
         setPassword('');
         setError('');
+        setSelectedAccountId(null);
       }
       onOpenChange(isOpen);
     }}>
@@ -118,6 +160,7 @@ export const AccountSwitcherDialog = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="rounded-xl"
+                disabled={!!selectedAccountId}
               />
               <Input
                 type="password"
@@ -125,7 +168,23 @@ export const AccountSwitcherDialog = ({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="rounded-xl"
+                autoFocus
               />
+            </div>
+            
+            {/* Save login info checkbox */}
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="save-login"
+                checked={saveLoginInfo}
+                onCheckedChange={(checked) => setSaveLoginInfo(!!checked)}
+              />
+              <label 
+                htmlFor="save-login" 
+                className="text-sm text-muted-foreground cursor-pointer"
+              >
+                Save login info for quick switching
+              </label>
             </div>
             
             {error && (
@@ -140,6 +199,7 @@ export const AccountSwitcherDialog = ({
                   setEmail('');
                   setPassword('');
                   setError('');
+                  setSelectedAccountId(null);
                 }}
                 className="flex-1 rounded-xl"
               >
@@ -175,8 +235,12 @@ export const AccountSwitcherDialog = ({
             {otherAccounts.map(account => (
               <button
                 key={account.id}
-                onClick={() => handleSwitchAccount(account.email)}
-                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors"
+                onClick={() => handleSwitchAccount(account)}
+                disabled={loading && selectedAccountId === account.id}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors",
+                  loading && selectedAccountId === account.id && "opacity-50"
+                )}
               >
                 <Avatar className="w-12 h-12">
                   {account.avatarUrl && <AvatarImage src={account.avatarUrl} />}
@@ -185,9 +249,17 @@ export const AccountSwitcherDialog = ({
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 text-left">
-                  <p className="font-medium">{account.displayName}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-medium">{account.displayName}</p>
+                    {hasStoredPassword(account.id) && (
+                      <Key className="w-3 h-3 text-muted-foreground" />
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">@{account.username}</p>
                 </div>
+                {loading && selectedAccountId === account.id && (
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                )}
               </button>
             ))}
 

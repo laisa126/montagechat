@@ -13,6 +13,7 @@ export type ScreenType =
   | 'search-results'
   | 'create-post'
   | 'create-story'
+  | 'create-reel'
   | 'settings'
   | 'edit-profile'
   | 'chat-list'

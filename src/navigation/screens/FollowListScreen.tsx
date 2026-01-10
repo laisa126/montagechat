@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ChevronLeft, Lock } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,6 +16,25 @@ interface FollowListScreenProps {
   initialTab?: ListTab;
   currentUserId?: string;
 }
+
+// Mock followers to show when there are none
+const generateMockFollowers = (count: number = 3) => {
+  const mockNames = [
+    { username: 'alex_photo', displayName: 'Alex Photography' },
+    { username: 'travel_sarah', displayName: 'Sarah Travels' },
+    { username: 'foodie_mike', displayName: 'Mike Eats' },
+    { username: 'art_emma', displayName: 'Emma Creates' },
+    { username: 'music_jay', displayName: 'Jay Beats' },
+  ];
+  
+  return mockNames.slice(0, count).map((name, index) => ({
+    id: `mock-${index}`,
+    username: name.username,
+    displayName: name.displayName,
+    avatarUrl: undefined,
+    isMock: true
+  }));
+};
 
 export const FollowListScreen: React.FC<FollowListScreenProps> = ({
   userId,
@@ -41,17 +60,34 @@ export const FollowListScreen: React.FC<FollowListScreenProps> = ({
   const followerCount = getFollowerCount(userId);
   const followingCount = getFollowingCount(userId);
   
-  // Only show 5 followers if not viewing own profile
+  // Only show 3-5 followers if not viewing own profile
   const isOwnProfile = userId === currentUserId;
-  const followers = isOwnProfile ? allFollowers : allFollowers.slice(0, 5);
-  const hasMoreFollowers = !isOwnProfile && allFollowers.length > 5;
+  const displayLimit = 4; // Show 4 followers for non-owners
+  
+  const displayFollowers = useMemo(() => {
+    if (isOwnProfile) {
+      return allFollowers;
+    }
+    
+    // If there are real followers, show up to displayLimit
+    if (allFollowers.length > 0) {
+      return allFollowers.slice(0, displayLimit);
+    }
+    
+    // If no real followers, show mock followers
+    return generateMockFollowers(displayLimit);
+  }, [allFollowers, isOwnProfile, displayLimit]);
+  
+  const hasMoreFollowers = !isOwnProfile && (allFollowers.length > displayLimit || allFollowers.length === 0);
+  const showingMockFollowers = !isOwnProfile && allFollowers.length === 0;
 
   const handleBack = () => {
     trigger('light');
     goBack();
   };
 
-  const handleUserTap = (user: { id: string; username: string; displayName: string; avatarUrl?: string }) => {
+  const handleUserTap = (user: { id: string; username: string; displayName: string; avatarUrl?: string; isMock?: boolean }) => {
+    if (user.isMock) return; // Don't navigate to mock profiles
     trigger('light');
     navigate('profile', {
       userId: user.id,
@@ -66,7 +102,7 @@ export const FollowListScreen: React.FC<FollowListScreenProps> = ({
     toggleFollow(targetUserId, targetUser);
   };
 
-  const currentList = activeTab === 'followers' ? followers : following;
+  const currentList = activeTab === 'followers' ? displayFollowers : following;
 
   return (
     <div className="flex flex-col h-full bg-background animate-slide-in-right">
@@ -122,17 +158,25 @@ export const FollowListScreen: React.FC<FollowListScreenProps> = ({
           {currentList.length > 0 ? (
             <div className="divide-y divide-border">
               {currentList.map(user => {
-                const isCurrentlyFollowing = isFollowing(user.id);
-                const isOwnProfile = user.id === currentUserId;
+                const isMockUser = 'isMock' in user && user.isMock;
+                const isCurrentlyFollowing = !isMockUser && isFollowing(user.id);
+                const isUserOwnProfile = user.id === currentUserId;
 
                 return (
                   <div
                     key={user.id}
-                    className="flex items-center gap-3 px-4 py-3"
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3",
+                      isMockUser && "opacity-60"
+                    )}
                   >
                     <button
-                      onClick={() => handleUserTap(user)}
-                      className="flex items-center gap-3 flex-1 active:opacity-70"
+                      onClick={() => handleUserTap(user as any)}
+                      className={cn(
+                        "flex items-center gap-3 flex-1",
+                        !isMockUser && "active:opacity-70"
+                      )}
+                      disabled={isMockUser}
                     >
                       <Avatar className="w-12 h-12">
                         {user.avatarUrl ? (
@@ -148,12 +192,12 @@ export const FollowListScreen: React.FC<FollowListScreenProps> = ({
                       </div>
                     </button>
                     
-                    {!isOwnProfile && currentUserId && (
+                    {!isUserOwnProfile && currentUserId && !isMockUser && (
                       <Button
                         variant={isCurrentlyFollowing ? "outline" : "default"}
                         size="sm"
                         className="rounded-xl min-w-[90px]"
-                        onClick={() => handleFollowToggle(user.id, user)}
+                        onClick={() => handleFollowToggle(user.id, user as any)}
                       >
                         {isCurrentlyFollowing ? 'Following' : 'Follow'}
                       </Button>
@@ -178,12 +222,15 @@ export const FollowListScreen: React.FC<FollowListScreenProps> = ({
             </div>
           )}
           
-          {/* Show "only owner can view all" message */}
+          {/* Show "only owner can view all" message for followers tab */}
           {activeTab === 'followers' && hasMoreFollowers && (
             <div className="py-6 px-4 text-center border-t border-border">
-              <p className="text-sm text-muted-foreground">
-                Only @{username} can view all their followers
-              </p>
+              <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <Lock className="w-4 h-4" />
+                <p className="text-sm">
+                  Only @{username} can see their full list of followers
+                </p>
+              </div>
             </div>
           )}
         </div>
