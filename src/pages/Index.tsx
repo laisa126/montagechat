@@ -13,6 +13,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUserPresence } from '@/hooks/useUserPresence';
 import { useFollows } from '@/hooks/useFollows';
 import { usePosts } from '@/hooks/usePosts';
+import { useFeedAlgorithm, useInteractionHistory } from '@/hooks/useFeedAlgorithm';
 import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
 import { ScreenRouter } from '@/navigation/ScreenRouter';
 import { cn } from '@/lib/utils';
@@ -43,29 +44,42 @@ const MainContent = () => {
   const { getFollowingUserIds } = useFollows(profile?.user_id);
   const { posts: dbPosts, createPost, uploadPostImage, toggleLike } = usePosts(profile?.user_id);
   
+  // Use interaction history for feed algorithm
+  const { likedUserIds, commentedUserIds, recordLike } = useInteractionHistory(profile?.user_id || '');
+  const followingIds = getFollowingUserIds(profile?.user_id || '');
+  
+  // Filter posts to show (own + following)
+  const relevantPosts = useMemo(() => {
+    return dbPosts.filter(post => 
+      post.user_id === profile?.user_id || // Own posts
+      followingIds.includes(post.user_id) // Posts from followed users
+    );
+  }, [dbPosts, profile?.user_id, followingIds]);
+  
+  // Apply feed algorithm
+  const algorithmPosts = useFeedAlgorithm(relevantPosts, {
+    likedUserIds,
+    commentedUserIds,
+    followingIds,
+    currentUserId: profile?.user_id || ''
+  });
+  
   // Transform database posts to feed format
   const feedPosts = useMemo(() => {
-    const followingIds = getFollowingUserIds(profile?.user_id || '');
-    
-    return dbPosts
-      .filter(post => 
-        post.user_id === profile?.user_id || // Own posts
-        followingIds.includes(post.user_id) // Posts from followed users
-      )
-      .map(post => ({
-        id: post.id,
-        username: post.username || 'user',
-        userId: post.user_id,
-        content: post.caption || '',
-        image: post.image_url || undefined,
-        likes: post.likes_count || 0,
-        comments: post.comments_count || 0,
-        timeAgo: formatDistanceToNow(new Date(post.created_at), { addSuffix: true }),
-        isLiked: post.is_liked || false,
-        isSaved: post.is_saved || false,
-        isVerified: post.is_verified || false
-      }));
-  }, [dbPosts, profile?.user_id, getFollowingUserIds]);
+    return algorithmPosts.map(post => ({
+      id: post.id,
+      username: post.username || 'user',
+      userId: post.user_id,
+      content: post.caption || '',
+      image: post.image_url || undefined,
+      likes: post.likes_count || 0,
+      comments: post.comments_count || 0,
+      timeAgo: formatDistanceToNow(new Date(post.created_at), { addSuffix: true }),
+      isLiked: post.is_liked || false,
+      isSaved: post.is_saved || false,
+      isVerified: post.is_verified || false
+    }));
+  }, [algorithmPosts]);
   
   // Track user presence
   useUserPresence(profile?.user_id);
@@ -126,6 +140,11 @@ const MainContent = () => {
   };
 
   const handleLike = async (postId: string) => {
+    // Find the post to get the user_id for algorithm tracking
+    const post = dbPosts.find(p => p.id === postId);
+    if (post) {
+      recordLike(post.user_id);
+    }
     await toggleLike(postId);
   };
 
@@ -205,7 +224,12 @@ const MainContent = () => {
       case 'chat':
         return <ChatTab currentUserId={profile?.user_id} />;
       case 'reels':
-        return <ReelsTab />;
+        return (
+          <ReelsTab 
+            currentUserId={profile?.user_id}
+            onCreateReel={() => navigate('create-reel')}
+          />
+        );
       case 'account':
         return profile ? (
           <AccountTab 
