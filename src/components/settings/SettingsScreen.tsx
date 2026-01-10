@@ -1,11 +1,12 @@
-import { ChevronLeft, ChevronRight, Search, User, Bell, Lock, Eye, Heart, MessageCircle, Users, Star, Clock, Wifi, HelpCircle, Info, LogOut, Sun, Moon, Shield, Smartphone, Key, Globe, Palette, Volume2, Zap, Database, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, User, Bell, Lock, Eye, Heart, MessageCircle, Users, Star, Clock, Wifi, HelpCircle, Info, LogOut, Sun, Moon, Shield, Smartphone, Key, Globe, Palette, Volume2, Zap, Database, Trash2, CheckCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { AdminPanel } from './AdminPanel';
+import { EnhancedAdminPanel } from './EnhancedAdminPanel';
+import { VerificationRequestScreen } from './VerificationRequestScreen';
 import type { Profile } from '@/hooks/useSupabaseAuth';
 
 type SettingsView = 
@@ -33,7 +34,8 @@ type SettingsView =
   | 'mentions'
   | 'accessibility'
   | 'sounds'
-  | 'admin';
+  | 'admin'
+  | 'verification';
 
 interface SettingsScreenProps {
   onBack: () => void;
@@ -41,10 +43,12 @@ interface SettingsScreenProps {
   onToggleTheme: () => void;
   onSignOut: () => void;
   user: {
+    id?: string;
     displayName: string;
     username: string;
     email: string;
     bio?: string;
+    isVerified?: boolean;
   };
   onUpdateUser: (updates: { displayName?: string; username?: string; bio?: string }) => void;
   isAdmin?: boolean;
@@ -146,13 +150,24 @@ export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user,
   );
 
   // Admin Panel Screen
-  if (currentView === 'admin' && isAdmin && onVerifyUser && getAllProfiles) {
+  if (currentView === 'admin' && isAdmin && onVerifyUser && getAllProfiles && user.id) {
     return (
-      <AdminPanel
+      <EnhancedAdminPanel
         onBack={() => setCurrentView('main')}
         onVerifyUser={onVerifyUser}
         onSetSimulatedFollowers={onSetSimulatedFollowers}
         getAllProfiles={getAllProfiles}
+        currentUserId={user.id}
+      />
+    );
+  }
+
+  // Verification Request Screen
+  if (currentView === 'verification' && user.id) {
+    return (
+      <VerificationRequestScreen
+        onBack={() => setCurrentView('main')}
+        userId={user.id}
       />
     );
   }
@@ -555,6 +570,13 @@ export const SettingsScreen = ({ onBack, isDark, onToggleTheme, onSignOut, user,
             <SettingsItem icon={<Lock className="w-5 h-5" />} label="Privacy" onClick={() => setCurrentView('privacy')} />
             <SettingsItem icon={<Shield className="w-5 h-5" />} label="Security" onClick={() => setCurrentView('security')} />
             <SettingsItem icon={<User className="w-5 h-5" />} label="Account" onClick={() => setCurrentView('account')} />
+            {!user.isVerified && (
+              <SettingsItem 
+                icon={<CheckCircle className="w-5 h-5 text-verified" />} 
+                label="Request Verification" 
+                onClick={() => setCurrentView('verification')} 
+              />
+            )}
           </SettingsSection>
 
           {isAdmin && (
