@@ -7,6 +7,10 @@ import { useNavigation } from '../NavigationContext';
 import { useFollows } from '@/hooks/useFollows';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+
+// Instagram default avatar
+const DEFAULT_AVATAR = 'https://i.imgur.com/6VBx3io.png';
 
 type ListTab = 'followers' | 'following';
 
@@ -18,20 +22,21 @@ interface FollowListScreenProps {
 }
 
 // Mock followers to show when there are none
-const generateMockFollowers = (count: number = 3) => {
+const generateMockFollowers = (count: number = 4) => {
   const mockNames = [
-    { username: 'alex_photo', displayName: 'Alex Photography' },
-    { username: 'travel_sarah', displayName: 'Sarah Travels' },
-    { username: 'foodie_mike', displayName: 'Mike Eats' },
-    { username: 'art_emma', displayName: 'Emma Creates' },
-    { username: 'music_jay', displayName: 'Jay Beats' },
+    { username: 'alex_photo', displayName: 'Alex Photography', isVerified: false },
+    { username: 'travel_sarah', displayName: 'Sarah Travels', isVerified: true },
+    { username: 'foodie_mike', displayName: 'Mike Eats', isVerified: false },
+    { username: 'art_emma', displayName: 'Emma Creates', isVerified: true },
+    { username: 'music_jay', displayName: 'Jay Beats', isVerified: false },
   ];
   
   return mockNames.slice(0, count).map((name, index) => ({
     id: `mock-${index}`,
     username: name.username,
     displayName: name.displayName,
-    avatarUrl: undefined,
+    avatarUrl: DEFAULT_AVATAR,
+    isVerified: name.isVerified,
     isMock: true
   }));
 };
@@ -161,13 +166,14 @@ export const FollowListScreen: React.FC<FollowListScreenProps> = ({
                 const isMockUser = 'isMock' in user && user.isMock;
                 const isCurrentlyFollowing = !isMockUser && isFollowing(user.id);
                 const isUserOwnProfile = user.id === currentUserId;
+                const userIsVerified = 'isVerified' in user && user.isVerified;
 
                 return (
                   <div
                     key={user.id}
                     className={cn(
                       "flex items-center gap-3 px-4 py-3",
-                      isMockUser && "opacity-60"
+                      isMockUser && "opacity-70"
                     )}
                   >
                     <button
@@ -176,18 +182,22 @@ export const FollowListScreen: React.FC<FollowListScreenProps> = ({
                         "flex items-center gap-3 flex-1",
                         !isMockUser && "active:opacity-70"
                       )}
-                      disabled={isMockUser}
+                      disabled={isMockUser as boolean}
                     >
                       <Avatar className="w-12 h-12">
-                        {user.avatarUrl ? (
-                          <AvatarImage src={user.avatarUrl} alt={user.displayName} />
-                        ) : null}
+                        <AvatarImage 
+                          src={user.avatarUrl || DEFAULT_AVATAR} 
+                          alt={user.displayName} 
+                        />
                         <AvatarFallback className="bg-muted text-muted-foreground">
                           {user.displayName[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="text-left">
-                        <p className="font-semibold">{user.username}</p>
+                        <div className="flex items-center gap-1">
+                          <p className="font-semibold">{user.username}</p>
+                          {userIsVerified && <VerifiedBadge size="sm" />}
+                        </div>
                         <p className="text-sm text-muted-foreground">{user.displayName}</p>
                       </div>
                     </button>

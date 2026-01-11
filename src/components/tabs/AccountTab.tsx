@@ -12,6 +12,9 @@ import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { AccountSwitcherDialog } from '@/components/settings/AccountSwitcherDialog';
 import type { Profile } from '@/hooks/useSupabaseAuth';
 
+// Instagram default avatar
+const DEFAULT_AVATAR = 'https://i.imgur.com/6VBx3io.png';
+
 type ContentTab = 'posts' | 'saved' | 'liked';
 
 interface Post {
@@ -238,9 +241,7 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
                 className="relative group"
               >
                 <Avatar className="w-20 h-20 border-2 border-border">
-                  {user.avatarUrl ? (
-                    <AvatarImage src={user.avatarUrl} alt={user.displayName} />
-                  ) : null}
+                  <AvatarImage src={user.avatarUrl || DEFAULT_AVATAR} alt={user.displayName} />
                   <AvatarFallback className="bg-muted text-muted-foreground text-2xl">
                     {user.displayName[0].toUpperCase()}
                   </AvatarFallback>

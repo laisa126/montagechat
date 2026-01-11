@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, Plus } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -9,6 +9,9 @@ import { NavigableAvatar, NavigableUsername, NavigableLikeCount, NavigableCommen
 import { useNavigation } from '@/navigation/NavigationContext';
 import { SuggestedUsers } from '@/components/profile/SuggestedUsers';
 import { cn } from '@/lib/utils';
+
+// Instagram default avatar
+const DEFAULT_AVATAR = 'https://i.imgur.com/6VBx3io.png';
 
 interface Story {
   id: string;
@@ -26,6 +29,7 @@ interface Post {
   id: string;
   username: string;
   userId?: string;
+  avatarUrl?: string;
   content: string;
   image?: string;
   likes: number;
@@ -227,6 +231,7 @@ export const HomeTab = ({
                       userId={post.userId || post.id}
                       username={post.username}
                       displayName={post.username}
+                      avatarUrl={post.avatarUrl || DEFAULT_AVATAR}
                       size="sm"
                     />
                     <NavigableUsername

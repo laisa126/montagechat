@@ -72,6 +72,7 @@ const MainContent = () => {
       id: post.id,
       username: post.username || 'user',
       userId: post.user_id,
+      avatarUrl: post.avatar_url || undefined,
       content: post.caption || '',
       image: post.image_url || undefined,
       likes: post.likes_count || 0,
