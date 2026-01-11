@@ -13,6 +13,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUserPresence } from '@/hooks/useUserPresence';
 import { useFollows } from '@/hooks/useFollows';
 import { usePosts } from '@/hooks/usePosts';
+import { useReels } from '@/hooks/useReels';
 import { useFeedAlgorithm, useInteractionHistory } from '@/hooks/useFeedAlgorithm';
 import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
 import { ScreenRouter } from '@/navigation/ScreenRouter';
@@ -43,6 +44,7 @@ const MainContent = () => {
   const [stories, setStories] = useLocalStorage<Story[]>('app-stories', []);
   const { getFollowingUserIds } = useFollows(profile?.user_id);
   const { posts: dbPosts, createPost, uploadPostImage, toggleLike } = usePosts(profile?.user_id);
+  const { createReel } = useReels(profile?.user_id);
   
   // Use interaction history for feed algorithm
   const { likedUserIds, commentedUserIds, recordLike } = useInteractionHistory(profile?.user_id || '');
@@ -139,6 +141,14 @@ const MainContent = () => {
     ));
   };
 
+  const handleCreateReel = async (reel: { videoFile: File; caption?: string; audioName?: string }) => {
+    const { error } = await createReel(reel.videoFile, reel.caption, reel.audioName);
+    if (error) {
+      toast.error('Failed to create reel');
+    } else {
+      toast.success('Reel created!');
+    }
+  };
   const handleLike = async (postId: string) => {
     // Find the post to get the user_id for algorithm tracking
     const post = dbPosts.find(p => p.id === postId);
@@ -172,6 +182,7 @@ const MainContent = () => {
             onBack={() => clearHistory()}
             onCreatePost={handleCreatePost}
             onCreateStory={handleCreateStory}
+            onCreateReel={handleCreateReel}
             isDark={isDark}
             onToggleTheme={toggleTheme}
             onSignOut={signOut}

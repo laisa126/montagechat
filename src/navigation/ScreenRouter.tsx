@@ -12,6 +12,7 @@ import { FollowRequestsScreen } from './screens/FollowRequestsScreen';
 import { NotificationsScreen } from '@/components/notifications/NotificationsScreen';
 import { PostCreationScreen } from '@/components/create/PostCreationScreen';
 import { StoryCreationScreen } from '@/components/create/StoryCreationScreen';
+import { ReelCreationScreen } from '@/components/create/ReelCreationScreen';
 import { SettingsScreen } from '@/components/settings/SettingsScreen';
 import { EditProfileScreen } from '@/components/profile/EditProfileScreen';
 
@@ -19,6 +20,7 @@ interface ScreenRouterProps {
   onBack: () => void;
   onCreatePost?: (post: { image?: string; caption: string }) => void;
   onCreateStory?: (story: { image: string; text?: string; music?: { name: string; artist: string } }) => void;
+  onCreateReel?: (reel: { videoFile: File; caption?: string; audioName?: string }) => void;
   isDark?: boolean;
   onToggleTheme?: () => void;
   onSignOut?: () => void;
@@ -42,6 +44,7 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
   onBack,
   onCreatePost,
   onCreateStory,
+  onCreateReel,
   isDark = false,
   onToggleTheme,
   onSignOut,
@@ -175,6 +178,17 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
           onBack={handleGoBack} 
           onPost={(story) => {
             onCreateStory?.(story);
+            handleGoBack();
+          }} 
+        />
+      );
+
+    case 'create-reel':
+      return (
+        <ReelCreationScreen 
+          onBack={handleGoBack} 
+          onCreateReel={(reel) => {
+            onCreateReel?.(reel);
             handleGoBack();
           }} 
         />
