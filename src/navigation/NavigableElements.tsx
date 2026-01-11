@@ -5,6 +5,9 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 
+// Instagram default avatar
+const DEFAULT_AVATAR = 'https://i.imgur.com/6VBx3io.png';
+
 interface NavigableAvatarProps {
   userId: string;
   username: string;
@@ -51,9 +54,7 @@ export const NavigableAvatar: React.FC<NavigableAvatarProps> = ({
       )}
     >
       <Avatar className={cn(sizeClasses[size], showRing && 'border-2 border-background')}>
-        {avatarUrl ? (
-          <AvatarImage src={avatarUrl} alt={displayName} />
-        ) : null}
+        <AvatarImage src={avatarUrl || DEFAULT_AVATAR} alt={displayName} />
         <AvatarFallback className="bg-muted text-muted-foreground">
           {displayName[0].toUpperCase()}
         </AvatarFallback>

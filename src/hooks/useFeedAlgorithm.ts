@@ -4,6 +4,7 @@ interface Post {
   id: string;
   user_id: string;
   username?: string;
+  avatar_url?: string | null;
   caption?: string | null;
   image_url?: string | null;
   created_at: string;
