@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { ScreenType, NavigationNode, NavigationState, GraphNavigationState } from './types';
+import { toast } from 'sonner';
 
 interface NavigationContextValue {
   currentNode: NavigationNode | null;
@@ -43,6 +44,8 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
   const [originTab, setOriginTab] = useState<'home' | 'search' | 'reels' | 'chat' | 'account'>(initialTab);
   const [hideBottomNav, setHideBottomNav] = useState(false);
   const nodeIdCounter = useRef(0);
+  const lastBackPressTime = useRef<number>(0);
+  const exitToastShown = useRef(false);
 
   const generateNodeId = useCallback((screen: ScreenType) => {
     nodeIdCounter.current += 1;
@@ -152,10 +155,9 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
   // Handle device back button (browser history)
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      
       if (state.currentNode) {
-        // Prevent default browser behavior
-        event.preventDefault();
-        
         // Try to go back in our internal navigation
         const canGoBackInternal = state.history.length > 0;
         if (canGoBackInternal) {
@@ -167,6 +169,29 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({
         
         // Push state back to prevent actual browser navigation
         window.history.pushState(null, '', window.location.pathname);
+      } else {
+        // User is on main tab, handle "tap back to exit"
+        const now = Date.now();
+        const timeSinceLastPress = now - lastBackPressTime.current;
+        
+        if (timeSinceLastPress < 2000 && exitToastShown.current) {
+          // Second press within 2 seconds - allow exit (do nothing to let browser handle it)
+          return;
+        } else {
+          // First press - show toast
+          event.preventDefault();
+          lastBackPressTime.current = now;
+          exitToastShown.current = true;
+          toast.info('Tap back again to exit', { duration: 2000 });
+          
+          // Push state back to prevent navigation
+          window.history.pushState(null, '', window.location.pathname);
+          
+          // Reset the flag after 2 seconds
+          setTimeout(() => {
+            exitToastShown.current = false;
+          }, 2000);
+        }
       }
     };
 
