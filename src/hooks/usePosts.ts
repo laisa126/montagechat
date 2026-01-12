@@ -56,12 +56,20 @@ export const usePosts = (currentUserId?: string) => {
 
       // Fetch user's likes if logged in
       let userLikes: string[] = [];
+      let userSaves: string[] = [];
       if (currentUserId) {
         const { data: userLikesData } = await supabase
           .from('post_likes')
           .select('post_id')
           .eq('user_id', currentUserId);
         userLikes = userLikesData?.map(l => l.post_id) || [];
+
+        // Fetch user's saves
+        const { data: userSavesData } = await supabase
+          .from('post_saves')
+          .select('post_id')
+          .eq('user_id', currentUserId);
+        userSaves = userSavesData?.map(s => s.post_id) || [];
       }
 
       // Count likes and comments per post
@@ -84,9 +92,8 @@ export const usePosts = (currentUserId?: string) => {
         likes_count: likesCount[post.id] || 0,
         comments_count: commentsCount[post.id] || 0,
         is_liked: userLikes.includes(post.id),
-        is_saved: false // TODO: implement saves table
+        is_saved: userSaves.includes(post.id)
       }));
-
       setPosts(enrichedPosts);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch posts');
@@ -195,6 +202,40 @@ export const usePosts = (currentUserId?: string) => {
     return { error: null };
   };
 
+  const toggleSave = async (postId: string) => {
+    if (!currentUserId) return { error: 'Not authenticated' };
+
+    const post = posts.find(p => p.id === postId);
+    if (!post) return { error: 'Post not found' };
+
+    if (post.is_saved) {
+      // Unsave
+      const { error } = await supabase
+        .from('post_saves')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', currentUserId);
+      
+      if (error) return { error: error.message };
+    } else {
+      // Save
+      const { error } = await supabase
+        .from('post_saves')
+        .insert({ post_id: postId, user_id: currentUserId });
+      
+      if (error) return { error: error.message };
+    }
+
+    // Optimistically update local state
+    setPosts(prev => prev.map(p => 
+      p.id === postId 
+        ? { ...p, is_saved: !p.is_saved }
+        : p
+    ));
+
+    return { error: null };
+  };
+
   const addComment = async (postId: string, content: string) => {
     if (!currentUserId) return { error: 'Not authenticated' };
 
@@ -236,6 +277,7 @@ export const usePosts = (currentUserId?: string) => {
     createPost,
     uploadPostImage,
     toggleLike,
+    toggleSave,
     addComment,
     getPostComments,
     getUserPosts,
