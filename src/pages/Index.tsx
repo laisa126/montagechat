@@ -43,7 +43,7 @@ const MainContent = () => {
   
   const [stories, setStories] = useLocalStorage<Story[]>('app-stories', []);
   const { getFollowingUserIds } = useFollows(profile?.user_id);
-  const { posts: dbPosts, createPost, uploadPostImage, toggleLike } = usePosts(profile?.user_id);
+  const { posts: dbPosts, createPost, uploadPostImage, toggleLike, toggleSave, refetch: refetchPosts } = usePosts(profile?.user_id);
   const { createReel } = useReels(profile?.user_id);
   
   // Use interaction history for feed algorithm
@@ -159,9 +159,12 @@ const MainContent = () => {
     await toggleLike(postId);
   };
 
-  const handleSave = (postId: string) => {
-    // TODO: Implement saves table
-    toast.info('Save feature coming soon');
+  const handleSave = async (postId: string) => {
+    await toggleSave(postId);
+  };
+
+  const handleRefresh = async () => {
+    await refetchPosts();
   };
 
   const handleTabChange = (tab: TabType) => {
@@ -228,6 +231,7 @@ const MainContent = () => {
             onSave={handleSave}
             onStoryViewed={handleStoryViewed}
             currentUserId={profile?.user_id}
+            onRefresh={handleRefresh}
           />
         );
       case 'search':
