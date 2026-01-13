@@ -10,6 +10,7 @@ import { useNavigation } from '@/navigation/NavigationContext';
 import { SuggestedUsers } from '@/components/profile/SuggestedUsers';
 import { DoubleTapHeart } from '@/components/post/DoubleTapHeart';
 import { ShareSheet } from '@/components/ui/ShareSheet';
+import { PostOptionsMenu } from '@/components/post/PostOptionsMenu';
 import { cn } from '@/lib/utils';
 
 // Instagram default avatar
@@ -50,7 +51,10 @@ interface HomeTabProps {
   posts: Post[];
   onLike: (postId: string) => void;
   onSave: (postId: string) => void;
+  onDelete?: (postId: string) => void;
   onStoryViewed?: (storyId: string) => void;
+  onStoryReply?: (storyId: string, storyUserId: string, message: string) => void;
+  onStoryReaction?: (storyId: string, storyUserId: string, emoji: string) => void;
   currentUserId?: string;
   onRefresh?: () => Promise<void>;
   followingUsers?: Array<{
@@ -69,7 +73,10 @@ export const HomeTab = ({
   posts,
   onLike,
   onSave,
+  onDelete,
   onStoryViewed,
+  onStoryReply,
+  onStoryReaction,
   currentUserId,
   onRefresh,
   followingUsers = []
@@ -77,6 +84,7 @@ export const HomeTab = ({
   const [hasNotification] = useState(true);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const [sharePostId, setSharePostId] = useState<string | null>(null);
+  const [optionsPostId, setOptionsPostId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -84,6 +92,9 @@ export const HomeTab = ({
   const { trigger } = useHaptic();
   const { t } = useLanguage();
   const { navigate } = useNavigation();
+
+  const selectedPost = posts.find(p => p.id === optionsPostId);
+  const isPostOwner = selectedPost?.userId === currentUserId;
 
   const PULL_THRESHOLD = 80;
 
@@ -155,6 +166,8 @@ export const HomeTab = ({
           initialIndex={viewingStoryIndex}
           onClose={() => setViewingStoryIndex(null)}
           onStoryViewed={onStoryViewed}
+          onReply={onStoryReply}
+          onReaction={onStoryReaction}
         />
       )}
 
@@ -164,6 +177,26 @@ export const HomeTab = ({
         onOpenChange={(open) => !open && setSharePostId(null)}
         postId={sharePostId || ''}
         users={followingUsers}
+      />
+
+      {/* Post Options Menu */}
+      <PostOptionsMenu
+        open={!!optionsPostId}
+        onOpenChange={(open) => !open && setOptionsPostId(null)}
+        postId={optionsPostId || ''}
+        isOwner={isPostOwner}
+        onEdit={() => {
+          // Post editing handled via toast for now
+        }}
+        onDelete={() => {
+          if (optionsPostId && onDelete) {
+            onDelete(optionsPostId);
+          }
+        }}
+        onShareToStory={() => {
+          // Trigger story creation with the post
+          onCreateStory();
+        }}
       />
 
       {/* Header */}
@@ -335,7 +368,13 @@ export const HomeTab = ({
                         isVerified={post.isVerified}
                       />
                     </div>
-                    <button className="p-1 active:scale-90 transition-transform">
+                    <button 
+                      onClick={() => {
+                        trigger('light');
+                        setOptionsPostId(post.id);
+                      }}
+                      className="p-1 active:scale-90 transition-transform"
+                    >
                       <MoreHorizontal className="w-5 h-5 text-foreground" />
                     </button>
                   </div>
