@@ -3,6 +3,8 @@ import { X, ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX } from 'luc
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useHaptic } from '@/hooks/useHaptic';
 import { cn } from '@/lib/utils';
+import { StoryReplyBar } from './StoryReplyBar';
+import { useToast } from '@/hooks/use-toast';
 
 interface Story {
   id: string;
@@ -21,16 +23,20 @@ interface StoryViewerProps {
   initialIndex: number;
   onClose: () => void;
   onStoryViewed?: (storyId: string) => void;
+  onReply?: (storyId: string, storyUserId: string, message: string) => void;
+  onReaction?: (storyId: string, storyUserId: string, emoji: string) => void;
 }
 
 const STORY_DURATION = 5000; // 5 seconds per story
 
-export const StoryViewer = ({ stories, initialIndex, onClose, onStoryViewed }: StoryViewerProps) => {
+export const StoryViewer = ({ stories, initialIndex, onClose, onStoryViewed, onReply, onReaction }: StoryViewerProps) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const { trigger } = useHaptic();
+  const { toast } = useToast();
 
   const currentStory = stories[currentIndex];
 
@@ -258,6 +264,39 @@ export const StoryViewer = ({ stories, initialIndex, onClose, onStoryViewed }: S
       <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 hover:opacity-100 transition-opacity">
         <ChevronRight className="w-8 h-8 text-white/50" />
       </div>
+
+      {/* Story Reply Bar */}
+      <StoryReplyBar
+        storyUserId={currentStory.id}
+        storyUserName={currentStory.name}
+        isPaused={isPaused}
+        onFocus={() => {
+          setIsPaused(true);
+          setIsInputFocused(true);
+        }}
+        onBlur={() => {
+          setIsPaused(false);
+          setIsInputFocused(false);
+        }}
+        onReply={(message) => {
+          if (onReply) {
+            onReply(currentStory.id, currentStory.id, message);
+          }
+          toast({
+            title: 'Reply sent',
+            description: `Message sent to ${currentStory.name}`,
+          });
+        }}
+        onReaction={(emoji) => {
+          if (onReaction) {
+            onReaction(currentStory.id, currentStory.id, emoji);
+          }
+          toast({
+            title: 'Reaction sent',
+            description: `${emoji} sent to ${currentStory.name}`,
+          });
+        }}
+      />
     </div>
   );
 };
