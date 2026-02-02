@@ -1,4 +1,4 @@
-import { Settings, Grid3X3, Bookmark, Heart, Plus, Camera, ChevronDown } from 'lucide-react';
+import { Settings, Grid3X3, Bookmark, Heart, Plus, Camera, ChevronDown, Loader2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,6 +10,8 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { useFollows } from '@/hooks/useFollows';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { AccountSwitcherDialog } from '@/components/settings/AccountSwitcherDialog';
+import { useSavedPosts } from '@/hooks/useSavedPosts';
+import { useLikedPosts } from '@/hooks/useLikedPosts';
 import type { Profile } from '@/hooks/useSupabaseAuth';
 
 // Instagram default avatar
@@ -44,9 +46,11 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
     const saved = localStorage.getItem('user_posts');
     return saved ? JSON.parse(saved) : [];
   });
-  const [savedPosts] = useState<Post[]>([]);
-  const [likedPosts] = useState<Post[]>([]);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  
+  // Fetch saved and liked posts from database
+  const { savedPosts, loading: savedLoading } = useSavedPosts(user.id);
+  const { likedPosts, loading: likedLoading } = useLikedPosts(user.id);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -142,14 +146,16 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
     navigate('edit-profile');
   };
 
-  const getCurrentPosts = () => {
+  const getCurrentPosts = (): Post[] => {
     switch (activeContentTab) {
       case 'posts': return posts;
-      case 'saved': return savedPosts;
-      case 'liked': return likedPosts;
+      case 'saved': return savedPosts.map(p => ({ id: p.id, imageUrl: p.imageUrl, createdAt: p.createdAt }));
+      case 'liked': return likedPosts.map(p => ({ id: p.id, imageUrl: p.imageUrl, createdAt: p.createdAt }));
       default: return [];
     }
   };
+  
+  const isLoading = (activeContentTab === 'saved' && savedLoading) || (activeContentTab === 'liked' && likedLoading);
 
   const handlePostTap = (index: number) => {
     trigger('light');
@@ -323,7 +329,11 @@ export const AccountTab = ({ user, onSignOut, isDark, onToggleTheme, onUpdateUse
 
           {/* Content Grid */}
           <div className="p-0.5">
-            {getCurrentPosts().length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : getCurrentPosts().length > 0 ? (
               <div className="grid grid-cols-3 gap-0.5">
                 {getCurrentPosts().map((post, index) => (
                   <button 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, MoreHorizontal, Grid3X3, Bookmark, Heart, Play } from 'lucide-react';
+import { ArrowLeft, Grid3X3, Bookmark, Heart, Play } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,6 +10,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useFollows } from '@/hooks/useFollows';
 import { usePresenceStatus } from '@/hooks/useUserPresence';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { ProfileActionsMenu } from '@/components/profile/ProfileActionsMenu';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -213,9 +214,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               {isVerified && <VerifiedBadge size="md" />}
             </div>
           </div>
-          <button className="p-1 active:scale-90 transition-transform">
-            <MoreHorizontal className="w-6 h-6" />
-          </button>
+          {!isOwnProfile && (
+            <ProfileActionsMenu
+              userId={userId}
+              username={username}
+              onReport={() => navigate('search')} // Placeholder for report flow
+            />
+          )}
+          {isOwnProfile && (
+            <ProfileActionsMenu
+              userId={userId}
+              username={username}
+            />
+          )}
         </div>
       </header>
 
