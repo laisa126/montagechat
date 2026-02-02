@@ -110,6 +110,7 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
       return (
         <CommentThreadScreen
           postId={params.postId as string}
+          currentUserId={currentUserId}
         />
       );
 

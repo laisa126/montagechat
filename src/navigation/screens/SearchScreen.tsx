@@ -7,6 +7,7 @@ import { useNavigation } from '../NavigationContext';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { ExploreGrid } from '@/components/search/ExploreGrid';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -365,33 +366,10 @@ export const SearchScreen = ({ initialQuery = '', initialType, currentUserId }: 
             </div>
           )}
 
-          {/* Trending Section */}
+          {/* Explore Grid - Show when no query */}
           {!query && history.length === 0 && (
-            <div className="mt-4">
-              <div className="flex items-center gap-2 px-4 py-3">
-                <TrendingUp className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold">Trending</h3>
-              </div>
-              <div className="divide-y divide-border">
-                {['photography', 'travel', 'food', 'music', 'art'].map((topic, i) => (
-                  <button
-                    key={topic}
-                    onClick={() => {
-                      trigger('light');
-                      setQuery(topic);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 active:bg-muted/50 transition-colors"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Hash className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-semibold">#{topic}</p>
-                      <p className="text-sm text-muted-foreground">{(100 - i * 15)}K posts</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+            <div className="mt-2">
+              <ExploreGrid />
             </div>
           )}
 
