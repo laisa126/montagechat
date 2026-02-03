@@ -1,11 +1,13 @@
 import { cn } from '@/lib/utils';
+import React, { memo } from 'react';
 
 interface VerifiedBadgeProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const VerifiedBadge = ({ className, size = 'md' }: VerifiedBadgeProps) => {
+// Memoized for faster re-renders
+export const VerifiedBadge = memo(({ className, size = 'md' }: VerifiedBadgeProps) => {
   const sizeClasses = {
     sm: 'w-3.5 h-3.5',
     md: 'w-4 h-4',
@@ -18,6 +20,7 @@ export const VerifiedBadge = ({ className, size = 'md' }: VerifiedBadgeProps) =>
       className={cn(sizeClasses[size], 'flex-shrink-0', className)}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      aria-label="Verified"
     >
       {/* Serrated/star-burst badge shape */}
       <path
@@ -34,4 +37,6 @@ export const VerifiedBadge = ({ className, size = 'md' }: VerifiedBadgeProps) =>
       />
     </svg>
   );
-};
+});
+
+VerifiedBadge.displayName = 'VerifiedBadge';

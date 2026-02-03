@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      blocked_users: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string
@@ -62,6 +83,75 @@ export type Database = {
           message_type?: string | null
           receiver_id?: string
           sender_id?: string
+        }
+        Relationships: []
+      }
+      muted_users: {
+        Row: {
+          created_at: string
+          id: string
+          mute_posts: boolean | null
+          mute_stories: boolean | null
+          muted_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mute_posts?: boolean | null
+          mute_stories?: boolean | null
+          muted_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mute_posts?: boolean | null
+          mute_stories?: boolean | null
+          muted_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          comment_id: string | null
+          content: string | null
+          created_at: string
+          from_user_id: string | null
+          id: string
+          is_read: boolean | null
+          post_id: string | null
+          reel_id: string | null
+          story_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          comment_id?: string | null
+          content?: string | null
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          post_id?: string | null
+          reel_id?: string | null
+          story_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          comment_id?: string | null
+          content?: string | null
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          is_read?: boolean | null
+          post_id?: string | null
+          reel_id?: string | null
+          story_id?: string | null
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -374,6 +464,27 @@ export type Database = {
         }
         Relationships: []
       }
+      restricted_users: {
+        Row: {
+          created_at: string
+          id: string
+          restricted_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          restricted_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          restricted_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       search_history: {
         Row: {
           id: string
@@ -520,6 +631,51 @@ export type Database = {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          allow_mentions: boolean | null
+          allow_tags: boolean | null
+          created_at: string
+          email_notifications: boolean | null
+          hide_like_count: boolean | null
+          id: string
+          language: string | null
+          private_account: boolean | null
+          push_notifications: boolean | null
+          show_activity_status: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_mentions?: boolean | null
+          allow_tags?: boolean | null
+          created_at?: string
+          email_notifications?: boolean | null
+          hide_like_count?: boolean | null
+          id?: string
+          language?: string | null
+          private_account?: boolean | null
+          push_notifications?: boolean | null
+          show_activity_status?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_mentions?: boolean | null
+          allow_tags?: boolean | null
+          created_at?: string
+          email_notifications?: boolean | null
+          hide_like_count?: boolean | null
+          id?: string
+          language?: string | null
+          private_account?: boolean | null
+          push_notifications?: boolean | null
+          show_activity_status?: boolean | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
