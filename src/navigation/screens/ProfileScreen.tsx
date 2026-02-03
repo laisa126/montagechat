@@ -9,6 +9,8 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useFollows } from '@/hooks/useFollows';
 import { usePresenceStatus } from '@/hooks/useUserPresence';
+import { useBlockedUsers } from '@/hooks/useBlockedUsers';
+import { useRestrictedUsers } from '@/hooks/useRestrictedUsers';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { ProfileActionsMenu } from '@/components/profile/ProfileActionsMenu';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,6 +51,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     registerUser 
   } = useFollows(currentUserId);
   const { isOnline } = usePresenceStatus(userId);
+  const { isBlocked, blockUser, unblockUser } = useBlockedUsers(currentUserId);
+  const { isRestricted, restrictUser, unrestrictUser } = useRestrictedUsers(currentUserId);
   
   const [activeTab, setActiveTab] = useState<ContentTab>(
     (currentNode?.state?.selectedTab as ContentTab) || 'posts'
@@ -218,7 +222,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <ProfileActionsMenu
               userId={userId}
               username={username}
-              onReport={() => navigate('search')} // Placeholder for report flow
+              isBlocked={isBlocked(userId)}
+              isRestricted={isRestricted(userId)}
+              onBlock={() => isBlocked(userId) ? unblockUser(userId) : blockUser(userId)}
+              onRestrict={() => isRestricted(userId) ? unrestrictUser(userId) : restrictUser(userId)}
+              onReport={() => navigate('search')}
             />
           )}
           {isOwnProfile && (

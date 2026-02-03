@@ -5,6 +5,7 @@ import { ChatTab } from '@/components/tabs/ChatTab';
 import { ReelsTab } from '@/components/tabs/ReelsTab';
 import { AccountTab } from '@/components/tabs/AccountTab';
 import { AuthScreen } from '@/components/auth/AuthScreen';
+import { BannedUserScreen } from '@/components/BannedUserScreen';
 import { Toaster } from '@/components/ui/sonner';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -15,6 +16,7 @@ import { useFollows } from '@/hooks/useFollows';
 import { usePosts } from '@/hooks/usePosts';
 import { useReels } from '@/hooks/useReels';
 import { useFeedAlgorithm, useInteractionHistory } from '@/hooks/useFeedAlgorithm';
+import { useBanCheck } from '@/hooks/useBanCheck';
 import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
 import { ScreenRouter } from '@/navigation/ScreenRouter';
 import { cn } from '@/lib/utils';
@@ -86,8 +88,11 @@ const MainContent = () => {
   
   // Track user presence
   useUserPresence(profile?.user_id);
+  
+  // Check ban status
+  const { isBanned, reason: banReason, banType, expiresAt: banExpiresAt, isLoading: banLoading } = useBanCheck(profile?.user_id);
 
-  if (loading) {
+  if (loading || banLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -97,6 +102,18 @@ const MainContent = () => {
 
   if (!isAuthenticated) {
     return <AuthScreen onLogin={signIn} onSignUp={signUp} />;
+  }
+  
+  // Show banned screen if user is banned
+  if (isBanned) {
+    return (
+      <BannedUserScreen
+        reason={banReason || 'Violation of Community Guidelines'}
+        banType={banType || 'permanent'}
+        expiresAt={banExpiresAt}
+        onSignOut={signOut}
+      />
+    );
   }
 
   const handleCreatePost = async (post: { image?: string; imageFile?: File; caption: string }) => {

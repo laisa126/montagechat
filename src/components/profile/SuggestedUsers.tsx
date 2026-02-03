@@ -135,7 +135,10 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
                 onClick={() => handleProfileTap(user)}
                 className="flex-1 text-left active:opacity-70 transition-opacity"
               >
-                <p className="font-semibold text-sm">{user.username}</p>
+                <div className="flex items-center gap-1">
+                  <p className="font-semibold text-sm">{user.username}</p>
+                  {user.isVerified && <VerifiedBadge size="sm" />}
+                </div>
                 <p className="text-xs text-muted-foreground line-clamp-1">
                   {user.mutualCount && user.mutualCount > 0
                     ? `Followed by ${user.mutualNames?.[0]}${user.mutualCount > 1 ? ` + ${user.mutualCount - 1} more` : ''}`
@@ -214,7 +217,10 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
                 onClick={() => handleProfileTap(user)}
                 className="text-center active:opacity-70 transition-opacity mb-2"
               >
-                <p className="font-semibold text-sm truncate max-w-[120px]">{user.username}</p>
+                <div className="flex items-center justify-center gap-1">
+                  <p className="font-semibold text-sm truncate max-w-[100px]">{user.username}</p>
+                  {user.isVerified && <VerifiedBadge size="sm" />}
+                </div>
                 <p className="text-xs text-muted-foreground truncate max-w-[120px]">
                   {user.mutualCount && user.mutualCount > 0
                     ? `${user.mutualCount} mutual`
