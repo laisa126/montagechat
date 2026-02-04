@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { BottomNav, TabType } from '@/components/navigation/BottomNav';
 import { HomeTab } from '@/components/tabs/HomeTab';
 import { ChatTab } from '@/components/tabs/ChatTab';
@@ -17,12 +17,16 @@ import { usePosts } from '@/hooks/usePosts';
 import { useReels } from '@/hooks/useReels';
 import { useFeedAlgorithm, useInteractionHistory } from '@/hooks/useFeedAlgorithm';
 import { useBanCheck } from '@/hooks/useBanCheck';
+import { warmupProfileCache } from '@/hooks/useProfileCache';
 import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
 import { ScreenRouter } from '@/navigation/ScreenRouter';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+
+// Warmup profile cache on app load for instant verification badges
+warmupProfileCache();
 
 interface Story {
   id: string;
