@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useNavigation } from './NavigationContext';
 import { useHaptic } from '@/hooks/useHaptic';
@@ -17,6 +18,7 @@ interface NavigableAvatarProps {
   className?: string;
   showRing?: boolean;
   ringColor?: string;
+  useUrlNavigation?: boolean;
 }
 
 export const NavigableAvatar: React.FC<NavigableAvatarProps> = ({
@@ -27,9 +29,11 @@ export const NavigableAvatar: React.FC<NavigableAvatarProps> = ({
   size = 'md',
   className,
   showRing = false,
-  ringColor
+  ringColor,
+  useUrlNavigation = false
 }) => {
   const { navigate } = useNavigation();
+  const urlNavigate = useNavigate();
   const { trigger } = useHaptic();
 
   const sizeClasses = {
@@ -40,7 +44,11 @@ export const NavigableAvatar: React.FC<NavigableAvatarProps> = ({
 
   const handleTap = () => {
     trigger('light');
-    navigate('profile', { userId, username, displayName, avatarUrl });
+    if (useUrlNavigation) {
+      urlNavigate(`/${username}`);
+    } else {
+      navigate('profile', { userId, username, displayName, avatarUrl });
+    }
   };
 
   return (
@@ -70,6 +78,7 @@ interface NavigableUsernameProps {
   avatarUrl?: string;
   className?: string;
   isVerified?: boolean;
+  useUrlNavigation?: boolean;
 }
 
 export const NavigableUsername: React.FC<NavigableUsernameProps> = ({
@@ -78,14 +87,20 @@ export const NavigableUsername: React.FC<NavigableUsernameProps> = ({
   displayName,
   avatarUrl,
   className,
-  isVerified = false
+  isVerified = false,
+  useUrlNavigation = false
 }) => {
   const { navigate } = useNavigation();
+  const urlNavigate = useNavigate();
   const { trigger } = useHaptic();
 
   const handleTap = () => {
     trigger('light');
-    navigate('profile', { userId, username, displayName: displayName || username, avatarUrl });
+    if (useUrlNavigation) {
+      urlNavigate(`/${username}`);
+    } else {
+      navigate('profile', { userId, username, displayName: displayName || username, avatarUrl });
+    }
   };
 
   return (
@@ -109,6 +124,7 @@ interface NavigablePostProps {
   userId: string;
   children?: React.ReactNode;
   className?: string;
+  useUrlNavigation?: boolean;
 }
 
 export const NavigablePost: React.FC<NavigablePostProps> = ({
@@ -117,14 +133,20 @@ export const NavigablePost: React.FC<NavigablePostProps> = ({
   username,
   userId,
   children,
-  className
+  className,
+  useUrlNavigation = false
 }) => {
   const { navigate } = useNavigation();
+  const urlNavigate = useNavigate();
   const { trigger } = useHaptic();
 
   const handleTap = () => {
     trigger('light');
-    navigate('post-detail', { postId, imageUrl, username, userId });
+    if (useUrlNavigation) {
+      urlNavigate(`/p/${postId}`);
+    } else {
+      navigate('post-detail', { postId, imageUrl, username, userId });
+    }
   };
 
   return (

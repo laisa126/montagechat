@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface CachedProfile {
+export interface CachedProfile {
   user_id: string;
   username: string;
   display_name: string;
@@ -14,7 +14,30 @@ interface CachedProfile {
 
 // Global cache for profiles - persists across component mounts
 const profileCache = new Map<string, CachedProfile>();
+const usernameToUserIdMap = new Map<string, string>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Pre-populate cache from any existing profiles
+export const warmupProfileCache = async () => {
+  const { data } = await supabase
+    .from('profiles')
+    .select('user_id, username, display_name, avatar_url, is_verified, simulated_followers, bio')
+    .limit(100);
+
+  if (data) {
+    const now = Date.now();
+    data.forEach(profile => {
+      const cached: CachedProfile = {
+        ...profile,
+        is_verified: profile.is_verified || false,
+        simulated_followers: profile.simulated_followers || 0,
+        fetchedAt: now
+      };
+      profileCache.set(profile.user_id, cached);
+      usernameToUserIdMap.set(profile.username.toLowerCase(), profile.user_id);
+    });
+  }
+};
 
 export const useProfileCache = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +75,7 @@ export const useProfileCache = () => {
         };
 
         profileCache.set(userId, profile);
+        usernameToUserIdMap.set(data.username.toLowerCase(), userId);
         return profile;
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -63,6 +87,42 @@ export const useProfileCache = () => {
 
     pendingRequests.current.set(userId, request);
     return request;
+  }, []);
+
+  const getProfileByUsername = useCallback(async (username: string): Promise<CachedProfile | null> => {
+    const lowerUsername = username.toLowerCase();
+    const userId = usernameToUserIdMap.get(lowerUsername);
+    
+    if (userId) {
+      const cached = profileCache.get(userId);
+      if (cached && Date.now() - cached.fetchedAt < CACHE_DURATION) {
+        return cached;
+      }
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('user_id, username, display_name, avatar_url, is_verified, simulated_followers, bio')
+        .ilike('username', username)
+        .single();
+
+      if (error) throw error;
+
+      const profile: CachedProfile = {
+        ...data,
+        is_verified: data.is_verified || false,
+        simulated_followers: data.simulated_followers || 0,
+        fetchedAt: Date.now()
+      };
+
+      profileCache.set(data.user_id, profile);
+      usernameToUserIdMap.set(data.username.toLowerCase(), data.user_id);
+      return profile;
+    } catch (err) {
+      console.error('Error fetching profile by username:', err);
+      return null;
+    }
   }, []);
 
   const getProfiles = useCallback(async (userIds: string[]): Promise<Map<string, CachedProfile>> => {
@@ -125,17 +185,25 @@ export const useProfileCache = () => {
 
   return { 
     getProfile, 
+    getProfileByUsername,
     getProfiles, 
     invalidateProfile, 
     prefetchProfiles,
+    getCachedProfile: (userId: string) => profileCache.get(userId),
     isLoading 
   };
 };
 
 // Hook to get a single profile with caching
 export const useCachedProfile = (userId?: string) => {
-  const [profile, setProfile] = useState<CachedProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<CachedProfile | null>(() => {
+    // Initialize from cache immediately for instant display
+    if (userId) {
+      return profileCache.get(userId) || null;
+    }
+    return null;
+  });
+  const [isLoading, setIsLoading] = useState(!profileCache.has(userId || ''));
   const { getProfile } = useProfileCache();
 
   useEffect(() => {
