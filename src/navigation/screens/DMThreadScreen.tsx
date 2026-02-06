@@ -126,7 +126,7 @@ export const DMThreadScreen: React.FC<DMThreadScreenProps> = ({
   const messageGroups = groupMessagesByDate();
 
   return (
-    <div className="flex flex-col h-full bg-background animate-slide-in-right">
+    <div className="flex flex-col h-full bg-background animate-slide-in-right allow-select">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 px-4 py-3">
         <div className="flex items-center justify-between">

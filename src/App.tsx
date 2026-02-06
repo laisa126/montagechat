@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import { PageLoader } from "@/components/ui/InstagramLoader";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -26,12 +26,6 @@ const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 const FollowRequestsPage = lazy(() => import("./pages/FollowRequestsPage"));
 
 const queryClient = new QueryClient();
-
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-  </div>
-);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
