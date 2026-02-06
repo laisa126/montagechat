@@ -5,7 +5,7 @@ import { ProfileScreen } from '@/navigation/screens/ProfileScreen';
 import { NavigationProvider } from '@/navigation/NavigationContext';
 import { BottomNav, TabType } from '@/components/navigation/BottomNav';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
-import { Loader2 } from 'lucide-react';
+import { PageLoader } from '@/components/ui/InstagramLoader';
 
 interface ProfileData {
   user_id: string;
@@ -72,11 +72,7 @@ const ProfilePage = () => {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!profileData) {

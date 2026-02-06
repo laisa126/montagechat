@@ -78,7 +78,7 @@ export function ChatArea({ chat, onSendMessage }: ChatAreaProps) {
   const messageGroups = groupMessagesByDate(chat.messages);
 
   return (
-    <div className="flex-1 flex flex-col bg-chat-bg">
+    <div className="flex-1 flex flex-col bg-chat-bg allow-select">
       {/* Header */}
       <header className="h-16 bg-card/80 backdrop-blur-sm border-b border-border px-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">

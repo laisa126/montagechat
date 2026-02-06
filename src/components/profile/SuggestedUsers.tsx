@@ -8,6 +8,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 import { useFollows } from '@/hooks/useFollows';
 import { supabase } from '@/integrations/supabase/client';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { SuggestedUserSkeleton } from '@/components/ui/InstagramLoader';
 import { cn } from '@/lib/utils';
 
 interface SuggestedUser {
@@ -46,10 +47,12 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
   
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [dismissedIds, setDismissedIds] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch real users from database
   useEffect(() => {
     const fetchUsers = async () => {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('profiles')
         .select('user_id, username, display_name, avatar_url, is_verified')
@@ -66,10 +69,13 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
           reason: 'Suggested for you'
         })));
       }
+      setIsLoading(false);
     };
     
     if (currentUserId) {
       fetchUsers();
+    } else {
+      setIsLoading(false);
     }
   }, [currentUserId]);
 
@@ -95,11 +101,27 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
 
   const handleDismiss = (userId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-      trigger('light');
-      setDismissedIds(prev => [...prev, userId]);
-    };
+    trigger('light');
+    setDismissedIds(prev => [...prev, userId]);
+  };
 
   const filteredUsers = suggestedUsers.filter(u => !dismissedIds.includes(u.id) && !isFollowing(u.id));
+
+  // Show skeleton loading state
+  if (isLoading) {
+    return (
+      <div className={cn("py-4", className)}>
+        <div className="flex items-center justify-between px-4 mb-3">
+          <h3 className="text-sm font-semibold">{title}</h3>
+        </div>
+        <div className="flex gap-3 px-4 overflow-x-auto scrollbar-hide">
+          {[1, 2, 3].map((i) => (
+            <SuggestedUserSkeleton key={i} className={`stagger-${i}`} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (filteredUsers.length === 0) {
     return null;
@@ -170,7 +192,7 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
     );
   }
 
-  // Horizontal variant
+  // Horizontal variant with smooth mobile scroll
   return (
     <div className={cn("py-4", className)}>
       <div className="flex items-center justify-between px-4 mb-3">
@@ -183,12 +205,18 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
         </button>
       </div>
       
-      <ScrollArea className="w-full">
-        <div className="flex gap-3 px-4 pb-2">
-          {filteredUsers.map((user) => (
+      {/* Mobile-optimized horizontal scroll */}
+      <div className="overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory touch-pan-x">
+        <div className="flex gap-3 px-4 pb-2 w-max">
+          {filteredUsers.map((user, index) => (
             <div
               key={user.id}
-              className="relative flex flex-col items-center bg-card border border-border rounded-xl p-4 min-w-[150px] w-[150px]"
+              className={cn(
+                "relative flex flex-col items-center bg-card border border-border rounded-2xl p-4",
+                "min-w-[150px] w-[150px] snap-start",
+                "animate-content-fade",
+                `stagger-${Math.min(index + 1, 5)}`
+              )}
             >
               {showDismiss && (
                 <button
@@ -239,8 +267,7 @@ export const SuggestedUsers: React.FC<SuggestedUsersProps> = ({
             </div>
           ))}
         </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      </div>
     </div>
   );
 };
