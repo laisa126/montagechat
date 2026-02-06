@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Bell, Plus, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -11,6 +11,7 @@ import { SuggestedUsers } from '@/components/profile/SuggestedUsers';
 import { DoubleTapHeart } from '@/components/post/DoubleTapHeart';
 import { ShareSheet } from '@/components/ui/ShareSheet';
 import { PostOptionsMenu } from '@/components/post/PostOptionsMenu';
+import { useStories } from '@/hooks/useStories';
 import { cn } from '@/lib/utils';
 
 // Instagram default avatar
@@ -26,6 +27,7 @@ interface Story {
   text?: string;
   music?: { name: string; artist: string };
   timestamp?: string;
+  userId?: string;
 }
 
 interface Post {
@@ -47,7 +49,6 @@ interface HomeTabProps {
   onCreatePost: () => void;
   onCreateStory: () => void;
   onNotifications: () => void;
-  stories: Story[];
   posts: Post[];
   onLike: (postId: string) => void;
   onSave: (postId: string) => void;
@@ -69,7 +70,6 @@ export const HomeTab = ({
   onCreatePost, 
   onCreateStory, 
   onNotifications,
-  stories,
   posts,
   onLike,
   onSave,
@@ -81,6 +81,8 @@ export const HomeTab = ({
   onRefresh,
   followingUsers = []
 }: HomeTabProps) => {
+  const { getUsersWithStories, getStoriesByUser } = useStories();
+  const { setHideBottomNav } = useNavigation();
   const [hasNotification] = useState(true);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const [sharePostId, setSharePostId] = useState<string | null>(null);
@@ -120,10 +122,7 @@ export const HomeTab = ({
     setSharePostId(postId);
   };
 
-  const handleViewStory = (index: number) => {
-    trigger('medium');
-    setViewingStoryIndex(index);
-  };
+  // Removed duplicate - handleViewStory is defined below with userId parameter
 
   // Pull to refresh handlers
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -155,16 +154,65 @@ export const HomeTab = ({
     startYRef.current = 0;
   }, [pullDistance, isRefreshing, onRefresh, trigger]);
 
-  const viewableStories = stories.filter(s => !s.isOwn && s.hasNewStory);
+  // Get users with stories from database
+  const usersWithStories = getUsersWithStories();
+  
+  // Transform to viewable stories format
+  const viewableStories: Story[] = usersWithStories
+    .filter(u => u.userId !== currentUserId)
+    .flatMap(user => 
+      user.stories.map(story => ({
+        id: story.id,
+        name: user.displayName || user.username || 'User',
+        image: user.avatarUrl || undefined,
+        storyImage: story.image_url || undefined,
+        text: story.text_content || undefined,
+        music: story.music_name && story.music_artist 
+          ? { name: story.music_name, artist: story.music_artist } 
+          : undefined,
+        timestamp: new Date(story.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        hasNewStory: true,
+        userId: story.user_id
+      }))
+    );
+
+  // Get unique users with their story status
+  const storyUsers = usersWithStories.filter(u => u.userId !== currentUserId);
+
+  // Hide bottom nav when viewing stories
+  const handleViewStory = (userId: string) => {
+    const userIndex = storyUsers.findIndex(u => u.userId === userId);
+    if (userIndex !== -1) {
+      trigger('medium');
+      setHideBottomNav(true);
+      setViewingStoryIndex(userIndex);
+    }
+  };
+
+  const handleCloseStoryViewer = () => {
+    setViewingStoryIndex(null);
+    setHideBottomNav(false);
+  };
 
   return (
     <div className="flex flex-col h-full animate-fade-in">
       {/* Story Viewer */}
-      {viewingStoryIndex !== null && viewableStories.length > 0 && (
+      {viewingStoryIndex !== null && storyUsers.length > 0 && (
         <StoryViewer
-          stories={viewableStories}
-          initialIndex={viewingStoryIndex}
-          onClose={() => setViewingStoryIndex(null)}
+          stories={storyUsers[viewingStoryIndex]?.stories.map(story => ({
+            id: story.id,
+            name: storyUsers[viewingStoryIndex].displayName || storyUsers[viewingStoryIndex].username || 'User',
+            image: storyUsers[viewingStoryIndex].avatarUrl || undefined,
+            storyImage: story.image_url || undefined,
+            text: story.text_content || undefined,
+            music: story.music_name && story.music_artist 
+              ? { name: story.music_name, artist: story.music_artist } 
+              : undefined,
+            timestamp: new Date(story.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isOwn: story.user_id === currentUserId
+          })) || []}
+          initialIndex={0}
+          onClose={handleCloseStoryViewer}
           onStoryViewed={onStoryViewed}
           onReply={onStoryReply}
           onReaction={onStoryReaction}
@@ -296,31 +344,33 @@ export const HomeTab = ({
                 </span>
               </button>
 
-              {stories.filter(s => !s.isOwn).map((story, index) => (
+              {storyUsers.map((user, index) => (
                 <button 
-                  key={story.id} 
-                  onClick={() => story.hasNewStory && handleViewStory(stories.filter(s => !s.isOwn && s.hasNewStory).findIndex(s => s.id === story.id))}
+                  key={user.userId} 
+                  onClick={() => handleViewStory(user.userId)}
                   className="flex flex-col items-center gap-1 min-w-[64px] animate-scale-in"
                   style={{ animationDelay: `${(index + 1) * 50}ms` }}
                 >
                   <div className={cn(
                     "p-0.5 rounded-full transition-transform duration-200 hover:scale-105 active:scale-95",
-                    story.hasNewStory ? 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600' : 'bg-muted'
+                    user.stories.length > 0 
+                      ? 'bg-gradient-to-tr from-amber-500 via-rose-500 to-fuchsia-600' 
+                      : 'bg-muted'
                   )}>
                     <div className="p-0.5 bg-background rounded-full">
                       <Avatar className="w-14 h-14">
-                        {story.image ? (
-                          <img src={story.image} alt={story.name} className="w-full h-full object-cover" />
+                        {user.avatarUrl ? (
+                          <img src={user.avatarUrl} alt={user.displayName || user.username} className="w-full h-full object-cover" />
                         ) : (
                           <AvatarFallback className="bg-muted text-muted-foreground text-lg">
-                            {story.name[0]}
+                            {(user.displayName || user.username || 'U')[0]}
                           </AvatarFallback>
                         )}
                       </Avatar>
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground truncate max-w-[64px]">
-                    {story.name}
+                    {user.displayName || user.username}
                   </span>
                 </button>
               ))}

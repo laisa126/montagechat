@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigation } from './NavigationContext';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { PostDetailScreen } from './screens/PostDetailScreen';
@@ -55,7 +55,20 @@ export const ScreenRouter: React.FC<ScreenRouterProps> = ({
   onSetSimulatedFollowers,
   getAllProfiles
 }) => {
-  const { currentNode, goBack } = useNavigation();
+  const { currentNode, goBack, setHideBottomNav } = useNavigation();
+
+  // Hide bottom nav for full-screen creation flows
+  useEffect(() => {
+    if (currentNode?.screen === 'create-story' || currentNode?.screen === 'create-reel') {
+      setHideBottomNav(true);
+    }
+    return () => {
+      // Restore on unmount if was a creation screen
+      if (currentNode?.screen === 'create-story' || currentNode?.screen === 'create-reel') {
+        setHideBottomNav(false);
+      }
+    };
+  }, [currentNode?.screen, setHideBottomNav]);
 
   if (!currentNode) return null;
 
