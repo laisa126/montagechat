@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { BottomNav, TabType } from '@/components/navigation/BottomNav';
 import { HomeTab } from '@/components/tabs/HomeTab';
 import { ChatTab } from '@/components/tabs/ChatTab';
@@ -10,13 +10,13 @@ import { Toaster } from '@/components/ui/sonner';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUserPresence } from '@/hooks/useUserPresence';
 import { useFollows } from '@/hooks/useFollows';
 import { usePosts } from '@/hooks/usePosts';
 import { useReels } from '@/hooks/useReels';
 import { useFeedAlgorithm, useInteractionHistory } from '@/hooks/useFeedAlgorithm';
 import { useBanCheck } from '@/hooks/useBanCheck';
+import { useStories } from '@/hooks/useStories';
 import { warmupProfileCache } from '@/hooks/useProfileCache';
 import { NavigationProvider, useNavigation } from '@/navigation/NavigationContext';
 import { ScreenRouter } from '@/navigation/ScreenRouter';
@@ -28,18 +28,6 @@ import { formatDistanceToNow } from 'date-fns';
 // Warmup profile cache on app load for instant verification badges
 warmupProfileCache();
 
-interface Story {
-  id: string;
-  name: string;
-  image?: string;
-  isOwn?: boolean;
-  hasNewStory?: boolean;
-  storyImage?: string;
-  text?: string;
-  music?: { name: string; artist: string };
-  timestamp?: string;
-}
-
 const MainContent = () => {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const { user, profile, signUp, signIn, signOut, updateProfile, verifyUser, getAllProfiles, setSimulatedFollowers, isAdmin, isAuthenticated, loading } = useSupabaseAuth();
@@ -47,7 +35,7 @@ const MainContent = () => {
   const { swipeOffset, isSwiping, swipeHandlers } = useSwipeNavigation(activeTab, setActiveTab);
   const { currentNode, navigate, clearHistory, setOriginTab, hideBottomNav } = useNavigation();
   
-  const [stories, setStories] = useLocalStorage<Story[]>('app-stories', []);
+  const { createStory, uploadStoryImage } = useStories();
   const { getFollowingUserIds } = useFollows(profile?.user_id);
   const { posts: dbPosts, createPost, uploadPostImage, toggleLike, toggleSave, refetch: refetchPosts } = usePosts(profile?.user_id);
   const { createReel } = useReels(profile?.user_id);
@@ -141,26 +129,36 @@ const MainContent = () => {
     }
   };
 
-  const handleCreateStory = (story: { image: string; text?: string; music?: { name: string; artist: string } }) => {
-    const newStory: Story = {
-      id: Date.now().toString(),
-      name: profile?.display_name || 'Your Story',
-      image: profile?.avatar_url || undefined,
-      storyImage: story.image,
-      text: story.text,
-      music: story.music,
-      hasNewStory: true,
-      timestamp: 'Just now'
-    };
-    setStories(prev => [newStory, ...prev]);
-  };
-
-  const handleStoryViewed = (storyId: string) => {
-    setStories(prev => prev.map(story => 
-      story.id === storyId 
-        ? { ...story, hasNewStory: false }
-        : story
-    ));
+  const handleCreateStory = async (story: { image: string; text?: string; music?: { name: string; artist: string } }) => {
+    // Convert base64 to file and upload
+    let imageUrl: string | null = null;
+    
+    if (story.image && story.image.startsWith('data:')) {
+      // Convert base64 to blob
+      const response = await fetch(story.image);
+      const blob = await response.blob();
+      const file = new File([blob], `story-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      
+      const { url, error: uploadError } = await uploadStoryImage(file);
+      if (uploadError) {
+        toast.error('Failed to upload story image');
+        return;
+      }
+      imageUrl = url;
+    }
+    
+    const { error } = await createStory({
+      imageUrl,
+      textContent: story.text,
+      musicName: story.music?.name,
+      musicArtist: story.music?.artist
+    });
+    
+    if (error) {
+      toast.error('Failed to create story');
+    } else {
+      toast.success('Story shared!');
+    }
   };
 
   const handleCreateReel = async (reel: { videoFile: File; caption?: string; audioName?: string }) => {
@@ -246,11 +244,9 @@ const MainContent = () => {
             onCreatePost={() => handleNavigate('create-post')}
             onCreateStory={() => handleNavigate('create-story')}
             onNotifications={() => handleNavigate('notifications')}
-            stories={stories}
             posts={feedPosts}
             onLike={handleLike}
             onSave={handleSave}
-            onStoryViewed={handleStoryViewed}
             currentUserId={profile?.user_id}
             onRefresh={handleRefresh}
           />
@@ -301,11 +297,10 @@ const MainContent = () => {
             onCreatePost={() => handleNavigate('create-post')}
             onCreateStory={() => handleNavigate('create-story')}
             onNotifications={() => handleNavigate('notifications')}
-            stories={stories}
             posts={feedPosts}
             onLike={handleLike}
             onSave={handleSave}
-            onStoryViewed={handleStoryViewed}
+            currentUserId={profile?.user_id}
           />
         );
     }
