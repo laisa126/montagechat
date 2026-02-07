@@ -9,14 +9,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      position="top-center"
       className="toaster group"
       toastOptions={{
+        duration: 2500,
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton: "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+            "group toast group-[.toaster]:bg-foreground/90 group-[.toaster]:text-background group-[.toaster]:border-0 group-[.toaster]:backdrop-blur-xl group-[.toaster]:rounded-2xl group-[.toaster]:shadow-lg group-[.toaster]:px-4 group-[.toaster]:py-3",
+          description: "group-[.toast]:text-background/80",
+          actionButton: "group-[.toast]:bg-background/20 group-[.toast]:text-background group-[.toast]:rounded-full",
+          cancelButton: "group-[.toast]:bg-background/10 group-[.toast]:text-background/80 group-[.toast]:rounded-full",
+          success: "group-[.toaster]:bg-primary/90 group-[.toaster]:text-primary-foreground",
+          error: "group-[.toaster]:bg-destructive/90 group-[.toaster]:text-destructive-foreground",
         },
       }}
       {...props}
